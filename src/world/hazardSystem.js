@@ -3,27 +3,27 @@ import * as THREE from "three";
 import { HAZARD_CONFIG, PALETTE } from "../game/config";
 import { damp, takeRandomItems } from "../utils/math";
 
-const MUD_CANDIDATES = [
+const DEFAULT_MUD_CANDIDATES = [
   { x: -16, z: -13, radius: 2.5 },
   { x: -3, z: -11, radius: 2.3 },
   { x: 8, z: 3, radius: 2.2 },
   { x: 15, z: 11, radius: 2.4 },
 ];
 
-const TOY_CANDIDATES = [
+const DEFAULT_TOY_CANDIDATES = [
   { x: -15, z: 6, radius: 1.7 },
   { x: 11, z: -10, radius: 1.7 },
   { x: 2, z: 11, radius: 1.7 },
   { x: 17, z: 2, radius: 1.7 },
 ];
 
-const SPRINKLER_CANDIDATES = [
+const DEFAULT_SPRINKLER_CANDIDATES = [
   { x: 0, z: 0, radius: 3.4 },
   { x: -8, z: -1, radius: 3.2 },
   { x: 9, z: 1, radius: 3.2 },
 ];
 
-const GARDEN_CANDIDATES = [
+const DEFAULT_GARDEN_CANDIDATES = [
   { x: -18, z: 14, halfWidth: 2.6, halfDepth: 1.35 },
   { x: 18, z: 14, halfWidth: 2.8, halfDepth: 1.35 },
   { x: -20, z: -6, halfWidth: 2.2, halfDepth: 1.45 },
@@ -369,7 +369,7 @@ export class HazardSystem {
     });
   }
 
-  resetRound({ reservedPositions = [] }) {
+  resetRound({ reservedPositions = [], levelHazards = {} }) {
     this.clearLayout();
     this.clearParticles();
     this.eventStatus = { ...HAZARD_CONFIG.defaultStatus };
@@ -377,24 +377,27 @@ export class HazardSystem {
     this.nextGardenCalloutAt = 0;
     this.sprinklerOverlay = 0;
 
+    const counts = levelHazards.counts ?? {};
+    const candidates = levelHazards.candidates ?? {};
+
     const mudCandidates = pickCandidates(
-      MUD_CANDIDATES,
-      HAZARD_CONFIG.mud.count,
+      candidates.mud ?? DEFAULT_MUD_CANDIDATES,
+      counts.mud ?? HAZARD_CONFIG.mud.count,
       reservedPositions,
     ).map((candidate) => createMudHazard(candidate));
     const toyCandidates = pickCandidates(
-      TOY_CANDIDATES,
-      HAZARD_CONFIG.toyPile.count,
+      candidates.toyPile ?? DEFAULT_TOY_CANDIDATES,
+      counts.toyPile ?? HAZARD_CONFIG.toyPile.count,
       reservedPositions,
     ).map((candidate) => createToyPile(candidate));
     const sprinklerCandidates = pickCandidates(
-      SPRINKLER_CANDIDATES,
-      HAZARD_CONFIG.sprinkler.count,
+      candidates.sprinkler ?? DEFAULT_SPRINKLER_CANDIDATES,
+      counts.sprinkler ?? HAZARD_CONFIG.sprinkler.count,
       reservedPositions,
     ).map((candidate) => createSprinkler(candidate));
     const gardenCandidates = pickCandidates(
-      GARDEN_CANDIDATES,
-      HAZARD_CONFIG.gardenBed.count,
+      candidates.gardenBed ?? DEFAULT_GARDEN_CANDIDATES,
+      counts.gardenBed ?? HAZARD_CONFIG.gardenBed.count,
       reservedPositions,
     ).map((candidate) => createGardenBed(candidate));
 

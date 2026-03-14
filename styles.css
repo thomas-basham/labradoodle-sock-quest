@@ -106,6 +106,13 @@ canvas {
   color: var(--accent-dark);
 }
 
+.title-submeta {
+  margin: 10px 0 0;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: rgba(95, 56, 24, 0.84);
+}
+
 button.hud-button {
   border: 1px solid rgba(141, 75, 28, 0.22);
   border-radius: 999px;
@@ -515,6 +522,41 @@ h2 {
   max-width: 44ch;
 }
 
+.level-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.level-preview-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(45, 29, 15, 0.12);
+  background: rgba(255, 249, 232, 0.78);
+}
+
+.level-preview-index {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+}
+
+.level-preview-name {
+  margin-top: 6px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.level-preview-text {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  color: rgba(52, 36, 20, 0.82);
+}
+
 .overlay-actions {
   display: flex;
   flex-wrap: wrap;
@@ -706,6 +748,10 @@ button:focus-visible {
   }
 
   .help-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .level-preview-grid {
     grid-template-columns: 1fr;
   }
 

@@ -7,6 +7,7 @@ function pulseElement(element) {
 
 export function createHud() {
   const dogName = document.getElementById("dogName");
+  const levelIndicator = document.getElementById("levelIndicator");
   const objectiveText = document.getElementById("objectiveText");
   const sockProgress = document.getElementById("sockProgress");
   const roundTime = document.getElementById("roundTime");
@@ -26,6 +27,12 @@ export function createHud() {
   return {
     setName(text) {
       dogName.textContent = text;
+    },
+
+    setLevel(text) {
+      if (levelIndicator) {
+        levelIndicator.textContent = text;
+      }
     },
 
     setObjective(text) {

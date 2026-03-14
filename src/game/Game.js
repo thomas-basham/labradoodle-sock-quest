@@ -28,7 +28,6 @@ import {
   GAME_STATES,
   HAZARD_CONFIG,
   MOVEMENT_CONFIG,
-  OBJECTIVES,
   OWNER_CELEBRATION_LINES,
   OWNER_REACTION_LINES,
   ROUND_CONFIG,
@@ -38,6 +37,7 @@ import {
   getSearchingObjective,
   getSniffHint,
 } from "./config";
+import { LevelManager } from "./LevelManager";
 import { applyQualityPreset, loadSettings, updateSettings } from "./settings";
 import {
   createDogState,
@@ -72,6 +72,7 @@ export class Game {
     this.camera = createFollowCamera();
     this.renderer = createRenderer(mount);
     this.settings = loadSettings();
+    this.levelManager = new LevelManager();
     applyQualityPreset(this.renderer, this.settings.qualityPreset);
     this.clock = new THREE.Clock();
     this.tempVector = new THREE.Vector3();
@@ -83,7 +84,8 @@ export class Game {
     this.inputState = createInputState();
     this.touchState = createTouchState();
 
-    buildEnvironment({ scene: this.scene, worldSize: this.worldState.size });
+    this.environment = buildEnvironment({ scene: this.scene, worldSize: this.worldState.size });
+    this.environment.applyLevel(this.levelManager.getCurrentLevel());
 
     this.owner = createOwner(this.scene);
     this.dog = createDog(this.scene);
@@ -111,6 +113,7 @@ export class Game {
     this.sniffCooldownEndsAt = 0;
     this.pauseStartedAt = null;
     this.hud.setName(DOG_NAME);
+    this.setLevelLabel(this.levelManager.getLevelLabel());
     this.hud.setObjective(this.worldState.objective);
     this.hud.setProgress(this.worldState.socksReturned, this.worldState.totalSocks);
     this.hud.setRoundTime(formatElapsedTime(this.worldState.roundTimeMs));
@@ -124,6 +127,7 @@ export class Game {
     this.overlay.showStart({
       settings: this.settings,
       supportsAudio: this.audioSystem.isSupported(),
+      levels: this.levelManager.getPreviewLevels(),
     });
     this.roundStartTime = null;
 
@@ -239,6 +243,25 @@ export class Game {
     });
   }
 
+  setLevelLabel(text) {
+    this.worldState.currentLevelName = this.levelManager.getCurrentLevel().name;
+    this.worldState.currentLevelNumber = this.levelManager.getCurrentLevelNumber();
+    this.worldState.totalLevels = this.levelManager.getTotalLevels();
+    this.hud.setLevel(text);
+  }
+
+  beginCampaign() {
+    this.levelManager.resetCampaign();
+    this.worldState.campaignElapsedMs = 0;
+    this.startRound();
+  }
+
+  advanceToNextLevel() {
+    if (this.levelManager.advanceLevel()) {
+      this.startRound();
+    }
+  }
+
   setObjective(text) {
     this.worldState.objective = text;
     this.hud.setObjective(text);
@@ -331,7 +354,7 @@ export class Game {
     const screen = this.overlay.getScreen();
 
     if (screen === "start") {
-      this.startRound();
+      this.beginCampaign();
       return;
     }
 
@@ -340,14 +363,19 @@ export class Game {
       return;
     }
 
-    if (screen === "complete") {
-      this.resetRound();
+    if (screen === "level-complete") {
+      this.advanceToNextLevel();
+      return;
+    }
+
+    if (screen === "game-complete") {
+      this.beginCampaign();
     }
   }
 
   handleOverlayAction(action) {
     if (action === "play") {
-      this.startRound();
+      this.beginCampaign();
       return;
     }
 
@@ -358,6 +386,16 @@ export class Game {
 
     if (action === "restart") {
       this.resetRound();
+      return;
+    }
+
+    if (action === "next-level") {
+      this.advanceToNextLevel();
+      return;
+    }
+
+    if (action === "replay-campaign") {
+      this.beginCampaign();
     }
   }
 
@@ -424,21 +462,27 @@ export class Game {
   }
 
   startRound() {
+    const currentLevel = this.levelManager.getCurrentLevel();
     this.worldState.paused = false;
     this.pauseStartedAt = null;
     this.audioSystem.setPaused(false);
     this.audioSystem.unlock();
     this.clearControlState();
+    this.environment.applyLevel(currentLevel);
+    this.setLevelLabel(this.levelManager.getLevelLabel());
     resetDog(this.dog, this.dogState);
     resetOwner(this.owner);
     this.juiceSystem.reset();
-    this.sockManager.resetRound();
+    this.sockManager.resetRound({
+      spawnPoints: currentLevel.sockSpawnPoints,
+    });
     this.hazardSystem.resetRound({
       reservedPositions: [
         ...this.sockManager.getRoundSockPositions(),
         this.owner.position.clone(),
         new THREE.Vector3(...DOG_CONFIG.spawn),
       ],
+      levelHazards: currentLevel.hazards,
     });
     this.worldState.gameStarted = true;
     this.worldState.state = GAME_STATES.searching;
@@ -457,6 +501,7 @@ export class Game {
   }
 
   completeRound() {
+    const currentLevel = this.levelManager.getCurrentLevel();
     const totalTime = performance.now() - this.roundStartTime;
     const previousBest = this.worldState.bestTimeMs;
     const isNewBest = previousBest === null || totalTime < previousBest;
@@ -466,9 +511,9 @@ export class Game {
     this.worldState.state = GAME_STATES.complete;
     this.worldState.gameStarted = false;
     this.worldState.paused = false;
+    this.worldState.campaignElapsedMs += totalTime;
     this.sniffCooldownEndsAt = 0;
     this.setRoundTime(totalTime);
-    this.setObjective(OBJECTIVES.complete);
     this.setSniffHint(SNIFF_CONFIG.completeHint);
     this.sockManager.hideMarkers();
 
@@ -478,13 +523,30 @@ export class Game {
     }
     this.setBestTime(bestTime);
 
-    this.overlay.showRoundComplete({
-      totalTimeText: formatElapsedTime(totalTime),
-      bestTimeText: formatElapsedTime(bestTime),
-      isNewBest,
-      settings: this.settings,
-      supportsAudio: this.audioSystem.isSupported(),
-    });
+    if (this.levelManager.hasNextLevel()) {
+      const nextLevel = this.levelManager.getNextLevel();
+      this.setObjective(`Yard clear. ${nextLevel.name} is next on Ray's sock circuit.`);
+      this.overlay.showLevelComplete({
+        levelName: currentLevel.name,
+        nextLevelName: nextLevel.name,
+        levelNumber: this.levelManager.getCurrentLevelNumber(),
+        totalLevels: this.levelManager.getTotalLevels(),
+        levelTimeText: formatElapsedTime(totalTime),
+        bestTimeText: formatElapsedTime(bestTime),
+        isNewBest,
+        settings: this.settings,
+        supportsAudio: this.audioSystem.isSupported(),
+      });
+    } else {
+      this.setObjective("Campaign complete. Ray solved every backyard sock mystery.");
+      this.overlay.showGameComplete({
+        totalCampaignTimeText: formatElapsedTime(this.worldState.campaignElapsedMs),
+        bestTimeText: formatElapsedTime(bestTime),
+        totalLevels: this.levelManager.getTotalLevels(),
+        settings: this.settings,
+        supportsAudio: this.audioSystem.isSupported(),
+      });
+    }
     this.updateSniffUi();
   }
 

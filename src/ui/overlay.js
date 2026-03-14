@@ -4,15 +4,28 @@ function formatSensitivity(value) {
   return `${Math.round(value * 100)}%`;
 }
 
-function renderStartScreen() {
+function renderStartScreen(levels) {
   return `
     <p class="eyebrow">Chief Laundry Investigator</p>
     <h2>Ray's Sock Quest</h2>
-    <p class="overlay-subtitle">A backyard sock safari starring the neighborhood's most committed labradoodle.</p>
+    <p class="overlay-subtitle">A three-yard sock safari starring the neighborhood's most committed labradoodle.</p>
     <p class="overlay-copy">
-      Five missing socks are loose in the yard. Sniff them out, dodge the backyard nonsense,
-      and parade every rescue back to Becca's hamper before the timer runs wild.
+      Progress through three backyard scenarios, recover every missing sock in each one,
+      and bring the whole laundry operation back to Becca's hamper in one piece.
     </p>
+    <div class="level-preview-grid">
+      ${levels
+        .map(
+          (level) => `
+            <section class="level-preview-card">
+              <p class="level-preview-index">Yard ${level.number}</p>
+              <p class="level-preview-name">${level.name}</p>
+              <p class="level-preview-text">${level.description}</p>
+            </section>
+          `,
+        )
+        .join("")}
+    </div>
     <div class="overlay-actions">
       <button type="button" data-action="play">Play</button>
       <button class="secondary-button" type="button" data-action="open-controls">Controls</button>
@@ -31,7 +44,7 @@ function renderPauseScreen() {
     </p>
     <div class="overlay-actions">
       <button type="button" data-action="resume">Resume</button>
-      <button class="secondary-button" type="button" data-action="restart">Restart round</button>
+      <button class="secondary-button" type="button" data-action="restart">Restart yard</button>
       <button class="secondary-button" type="button" data-action="open-controls">Controls</button>
       <button class="secondary-button" type="button" data-action="open-settings">Settings</button>
     </div>
@@ -66,11 +79,11 @@ function renderControlsScreen() {
       </section>
     </div>
     <section class="help-card help-card-wide">
-      <p class="help-label">Round goal</p>
+      <p class="help-label">Campaign flow</p>
       <ul class="help-list">
         <li>Only one sock is active at a time. Follow the marker to the current target.</li>
         <li>After pickup, the marker flips to Becca so you can return the sock to the hamper.</li>
-        <li>Sniff gives a distance hint and a temporary scent trail toward the active sock.</li>
+        <li>Complete Sunny Backyard, then Evening Backyard, then Chaotic Laundry Day.</li>
         <li>Mud slows Ray, toys bounce her, sprinklers mist the camera, and flower beds block movement.</li>
       </ul>
     </section>
@@ -155,26 +168,60 @@ function renderSettingsScreen(settings, audioSupported) {
   `;
 }
 
-function renderRoundCompleteScreen({ totalTimeText, bestTimeText, isNewBest }) {
+function renderLevelCompleteScreen({
+  levelName,
+  nextLevelName,
+  levelNumber,
+  totalLevels,
+  levelTimeText,
+  bestTimeText,
+  isNewBest,
+}) {
   return `
-    <p class="eyebrow">Laundry Legend</p>
-    <h2>Round complete</h2>
-    <p class="overlay-subtitle">Ray brought every missing sock back to Becca's hamper.</p>
+    <p class="eyebrow">Yard Cleared</p>
+    <h2>${levelName} complete</h2>
+    <p class="overlay-subtitle">Yard ${levelNumber} of ${totalLevels} is done. Next up: ${nextLevelName}.</p>
     <div class="overlay-summary">
       <div class="overlay-summary-grid">
         <div class="overlay-stat">
-          <p class="meta-label">Total time</p>
-          <p class="overlay-stat-value">${totalTimeText}</p>
+          <p class="meta-label">Yard time</p>
+          <p class="overlay-stat-value">${levelTimeText}</p>
         </div>
         <div class="overlay-stat">
-          <p class="meta-label">Best time</p>
+          <p class="meta-label">Best yard time</p>
           <p class="overlay-stat-value">${bestTimeText}</p>
         </div>
       </div>
-      <p class="overlay-best-notice">${isNewBest ? "New best time!" : "Best time stands. Run it back."}</p>
+      <p class="overlay-best-notice">${isNewBest ? "New best time!" : "Best yard time stands."}</p>
     </div>
     <div class="overlay-actions">
-      <button type="button" data-action="restart">Play again</button>
+      <button type="button" data-action="next-level">Next yard</button>
+      <button class="secondary-button" type="button" data-action="open-controls">Controls</button>
+      <button class="secondary-button" type="button" data-action="open-settings">Settings</button>
+    </div>
+  `;
+}
+
+function renderGameCompleteScreen({ totalCampaignTimeText, bestTimeText, totalLevels }) {
+  return `
+    <p class="eyebrow">Laundry Masterclass</p>
+    <h2>Every backyard conquered</h2>
+    <p class="overlay-subtitle">Ray cleared all ${totalLevels} yard variations and returned every sock to Becca.</p>
+    <div class="overlay-summary">
+      <div class="overlay-summary-grid">
+        <div class="overlay-stat">
+          <p class="meta-label">Campaign time</p>
+          <p class="overlay-stat-value">${totalCampaignTimeText}</p>
+        </div>
+        <div class="overlay-stat">
+          <p class="meta-label">Best single yard</p>
+          <p class="overlay-stat-value">${bestTimeText}</p>
+        </div>
+      </div>
+      <p class="overlay-best-notice">Sunny, evening, and laundry chaos: fully solved.</p>
+    </div>
+    <div class="overlay-actions">
+      <button type="button" data-action="replay-campaign">Replay campaign</button>
       <button class="secondary-button" type="button" data-action="open-controls">Controls</button>
       <button class="secondary-button" type="button" data-action="open-settings">Settings</button>
     </div>
@@ -188,13 +235,15 @@ export function createOverlay() {
   let backScreen = "start";
   let currentSettings = null;
   let audioSupported = true;
-  let roundCompleteData = null;
+  let previewLevels = [];
+  let levelCompleteData = null;
+  let gameCompleteData = null;
   let actionHandler = () => {};
   let settingsChangeHandler = () => {};
 
   function renderCurrentScreen() {
     if (currentScreen === "start") {
-      panel.innerHTML = renderStartScreen();
+      panel.innerHTML = renderStartScreen(previewLevels);
       return;
     }
 
@@ -213,8 +262,13 @@ export function createOverlay() {
       return;
     }
 
-    if (currentScreen === "complete" && roundCompleteData) {
-      panel.innerHTML = renderRoundCompleteScreen(roundCompleteData);
+    if (currentScreen === "level-complete" && levelCompleteData) {
+      panel.innerHTML = renderLevelCompleteScreen(levelCompleteData);
+      return;
+    }
+
+    if (currentScreen === "game-complete" && gameCompleteData) {
+      panel.innerHTML = renderGameCompleteScreen(gameCompleteData);
     }
   }
 
@@ -318,7 +372,11 @@ export function createOverlay() {
       settingsChangeHandler({ soundEnabled: target.checked });
       const label = target.parentElement?.querySelector("span:last-child");
       if (label) {
-        label.textContent = audioSupported ? (target.checked ? "Sound enabled" : "Sound muted") : "Sound unavailable";
+        label.textContent = audioSupported
+          ? target.checked
+            ? "Sound enabled"
+            : "Sound muted"
+          : "Sound unavailable";
       }
       return;
     }
@@ -342,9 +400,10 @@ export function createOverlay() {
   panel.addEventListener("change", handleSettingInput);
 
   return {
-    showStart({ settings, supportsAudio = true }) {
+    showStart({ settings, supportsAudio = true, levels = [] }) {
       currentSettings = settings;
       audioSupported = supportsAudio;
+      previewLevels = levels;
       showScreen("start");
     },
 
@@ -354,11 +413,18 @@ export function createOverlay() {
       showScreen("pause");
     },
 
-    showRoundComplete({ totalTimeText, bestTimeText, isNewBest, settings, supportsAudio = true }) {
-      roundCompleteData = { totalTimeText, bestTimeText, isNewBest };
+    showLevelComplete({ settings, supportsAudio = true, ...data }) {
       currentSettings = settings;
       audioSupported = supportsAudio;
-      showScreen("complete");
+      levelCompleteData = data;
+      showScreen("level-complete");
+    },
+
+    showGameComplete({ settings, supportsAudio = true, ...data }) {
+      currentSettings = settings;
+      audioSupported = supportsAudio;
+      gameCompleteData = data;
+      showScreen("game-complete");
     },
 
     updateSettings(settings, { supportsAudio = audioSupported } = {}) {

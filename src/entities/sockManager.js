@@ -172,8 +172,9 @@ export class SockManager {
     return true;
   }
 
-  resetRound() {
-    const spawnPoints = takeRandomItems(SOCK_SPAWN_POINTS, this.totalSocks);
+  resetRound({ spawnPoints = SOCK_SPAWN_POINTS } = {}) {
+    const candidateSpawnPoints = spawnPoints.length >= this.totalSocks ? spawnPoints : SOCK_SPAWN_POINTS;
+    const selectedSpawnPoints = takeRandomItems(candidateSpawnPoints, this.totalSocks);
     this.activeIndex = 0;
     this.returnedCount = 0;
     this.carriedSock = null;
@@ -183,7 +184,7 @@ export class SockManager {
       placeSockAt({
         sock,
         scene: this.scene,
-        position: spawnPoints[index],
+        position: selectedSpawnPoints[index],
         rotationY: Math.random() * Math.PI,
       });
       setSockFocus(sock, index === 0);

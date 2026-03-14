@@ -2,12 +2,33 @@ import * as THREE from "three";
 
 import { PALETTE } from "../game/config";
 
-function makeStandardMaterial(color, roughness = 0.75) {
+function makeStandardMaterial(color, roughness = 0.75, extra = {}) {
   return new THREE.MeshStandardMaterial({
     color,
     roughness,
     metalness: 0.05,
+    ...extra,
   });
+}
+
+function disposeObject(root) {
+  root.traverse((child) => {
+    if (child.geometry) {
+      child.geometry.dispose();
+    }
+
+    if (!child.material) {
+      return;
+    }
+
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    materials.forEach((material) => material.dispose());
+  });
+}
+
+function clearGroup(group) {
+  group.children.forEach((child) => disposeObject(child));
+  group.clear();
 }
 
 function addLights(scene) {
@@ -25,17 +46,21 @@ function addLights(scene) {
   sun.shadow.camera.near = 1;
   sun.shadow.camera.far = 90;
   scene.add(sun);
+
+  return { hemi, sun };
 }
 
 function addSkyDome(scene) {
+  const uniforms = {
+    colorA: { value: new THREE.Color(0x7bc0ff) },
+    colorB: { value: new THREE.Color(0xffe4aa) },
+  };
+
   const dome = new THREE.Mesh(
     new THREE.SphereGeometry(120, 48, 48),
     new THREE.ShaderMaterial({
       side: THREE.BackSide,
-      uniforms: {
-        colorA: { value: new THREE.Color(0x7bc0ff) },
-        colorB: { value: new THREE.Color(0xffe4aa) },
-      },
+      uniforms,
       vertexShader: `
         varying vec3 vWorldPosition;
         void main() {
@@ -58,9 +83,10 @@ function addSkyDome(scene) {
   );
 
   scene.add(dome);
+  return { dome, uniforms };
 }
 
-function createGround(scene) {
+function createGround(parent) {
   const groundMaterial = new THREE.MeshStandardMaterial({
     color: PALETTE.grass,
     roughness: 0.94,
@@ -75,16 +101,18 @@ function createGround(scene) {
   const ground = new THREE.Mesh(new THREE.CircleGeometry(54, 72), groundMaterial);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
-  scene.add(ground);
+  parent.add(ground);
 
   const path = new THREE.Mesh(new THREE.PlaneGeometry(7, 10), pathMaterial);
   path.rotation.x = -Math.PI / 2;
   path.position.set(0, 0.03, 18.2);
   path.receiveShadow = true;
-  scene.add(path);
+  parent.add(path);
+
+  return { groundMaterial, pathMaterial };
 }
 
-function createFence(scene, worldSize) {
+function createFence(parent, worldSize) {
   const fence = new THREE.Group();
   const railMaterial = makeStandardMaterial(0x9d7346, 0.82);
   const postGeometry = new THREE.BoxGeometry(0.35, 1.7, 0.35);
@@ -114,22 +142,23 @@ function createFence(scene, worldSize) {
     fence.add(postA, postB, railTop, railBottom);
   }
 
-  for (let i = -limit + 4; i < limit - 2; i += 4.5) {
-    addSegment(i, -limit, true);
-    addSegment(i, limit, true);
-    addSegment(-limit, i, false);
-    addSegment(limit, i, false);
+  for (let index = -limit + 4; index < limit - 2; index += 4.5) {
+    addSegment(index, -limit, true);
+    addSegment(index, limit, true);
+    addSegment(-limit, index, false);
+    addSegment(limit, index, false);
   }
 
-  scene.add(fence);
+  parent.add(fence);
 }
 
-function createHouseAndPorch(scene) {
+function createHouseAndPorch(parent) {
   const house = new THREE.Group();
   const houseMaterial = makeStandardMaterial(PALETTE.house, 0.92);
   const trimMaterial = makeStandardMaterial(0xf8f6ed, 0.6);
   const roofMaterial = makeStandardMaterial(PALETTE.roof, 0.9);
   const porchMaterial = makeStandardMaterial(PALETTE.porch, 0.88);
+  const windowPanes = [];
 
   const body = new THREE.Mesh(new THREE.BoxGeometry(11, 7.2, 7.2), houseMaterial);
   body.position.set(0, 3.6, 25);
@@ -163,24 +192,29 @@ function createHouseAndPorch(scene) {
     windowFrame.castShadow = true;
     house.add(windowFrame);
 
+    const paneMaterial = new THREE.MeshStandardMaterial({
+      color: 0x9cc8ff,
+      transparent: true,
+      opacity: 0.78,
+      roughness: 0.12,
+      metalness: 0.05,
+      emissive: 0x000000,
+      emissiveIntensity: 0,
+    });
     const pane = new THREE.Mesh(
       new THREE.BoxGeometry(1.4, 1.4, 0.12),
-      new THREE.MeshStandardMaterial({
-        color: 0x9cc8ff,
-        transparent: true,
-        opacity: 0.78,
-        roughness: 0.12,
-        metalness: 0.05,
-      }),
+      paneMaterial,
     );
     pane.position.set(side, 4.15, 21.42);
     house.add(pane);
+    windowPanes.push(pane);
   }
 
-  scene.add(house);
+  parent.add(house);
+  return { windowPanes };
 }
 
-function createTree(scene, position, scale) {
+function createTree(parent, position, scale) {
   const tree = new THREE.Group();
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.55, 0.8, 4.2, 10),
@@ -206,23 +240,46 @@ function createTree(scene, position, scale) {
     tree.add(crown);
   }
 
-  tree.position.copy(position);
+  tree.position.set(...position);
   tree.scale.setScalar(scale);
-  scene.add(tree);
+  parent.add(tree);
 }
 
-function createFlowerPatch(scene, position) {
+function createBush(parent, position, scale = 1) {
+  const bush = new THREE.Group();
+  const bushMaterial = makeStandardMaterial(0x6e9749, 0.92);
+
+  for (const offset of [
+    [-0.46, 0.34, 0.12, 0.54],
+    [0.0, 0.45, -0.1, 0.66],
+    [0.48, 0.32, 0.08, 0.52],
+  ]) {
+    const puff = new THREE.Mesh(
+      new THREE.SphereGeometry(offset[3], 14, 14),
+      bushMaterial,
+    );
+    puff.position.set(offset[0], offset[1], offset[2]);
+    puff.castShadow = true;
+    bush.add(puff);
+  }
+
+  bush.position.set(...position);
+  bush.scale.setScalar(scale);
+  parent.add(bush);
+}
+
+function createFlowerPatch(parent, position) {
   const patch = new THREE.Group();
   const flowerColors = [0xffcf71, 0xff88a9, 0xffffff, 0xffa64f];
 
-  for (let i = 0; i < 8; i += 1) {
+  for (let index = 0; index < 8; index += 1) {
     const stem = new THREE.Mesh(
       new THREE.CylinderGeometry(0.03, 0.05, 0.55, 6),
       makeStandardMaterial(0x557b38, 0.9),
     );
     const blossom = new THREE.Mesh(
       new THREE.SphereGeometry(0.12, 10, 10),
-      makeStandardMaterial(flowerColors[i % flowerColors.length], 0.55),
+      makeStandardMaterial(flowerColors[index % flowerColors.length], 0.55),
     );
 
     stem.position.set(
@@ -236,11 +293,11 @@ function createFlowerPatch(scene, position) {
     patch.add(stem, blossom);
   }
 
-  patch.position.copy(position);
-  scene.add(patch);
+  patch.position.set(...position);
+  parent.add(patch);
 }
 
-function createToyBone(scene, position) {
+function createToyBone(parent, position) {
   const group = new THREE.Group();
   const material = makeStandardMaterial(0xf7ead8, 0.9);
 
@@ -258,12 +315,12 @@ function createToyBone(scene, position) {
     }
   }
 
-  group.position.copy(position);
+  group.position.set(...position);
   group.rotation.y = Math.random() * Math.PI;
-  scene.add(group);
+  parent.add(group);
 }
 
-function createLaundryBasket(scene, position, rotationY = 0) {
+function createLaundryBasket(parent, { position, rotationY = 0 }) {
   const basket = new THREE.Group();
   const basketMaterial = makeStandardMaterial(0xcaa271, 0.9);
   const trimMaterial = makeStandardMaterial(0xa67f52, 0.88);
@@ -289,38 +346,183 @@ function createLaundryBasket(scene, position, rotationY = 0) {
   rim.castShadow = true;
   basket.add(rim);
 
-  for (let i = 0; i < 4; i += 1) {
+  for (let index = 0; index < 4; index += 1) {
     const cloth = new THREE.Mesh(
-      new THREE.SphereGeometry(0.24 + i * 0.02, 14, 14),
-      makeStandardMaterial(clothColors[i % clothColors.length], 0.92),
+      new THREE.SphereGeometry(0.24 + index * 0.02, 14, 14),
+      makeStandardMaterial(clothColors[index % clothColors.length], 0.92),
     );
-    cloth.position.set(-0.26 + i * 0.19, 1.0 + (i % 2) * 0.08, -0.06 + i * 0.06);
+    cloth.position.set(-0.26 + index * 0.19, 1.0 + (index % 2) * 0.08, -0.06 + index * 0.06);
     cloth.castShadow = true;
     basket.add(cloth);
   }
 
-  basket.position.copy(position);
+  basket.position.set(...position);
   basket.rotation.y = rotationY;
-  scene.add(basket);
+  parent.add(basket);
+}
+
+function createLaundryPile(parent, { position, rotationY = 0 }) {
+  const pile = new THREE.Group();
+  const colors = [0xf6dcb2, 0xffb7ca, 0xcfe1ff, PALETTE.sockStripe];
+
+  for (let index = 0; index < 4; index += 1) {
+    const cloth = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28 + index * 0.04, 14, 14),
+      makeStandardMaterial(colors[index % colors.length], 0.94),
+    );
+    cloth.scale.set(1.25, 0.55 + index * 0.05, 1.05);
+    cloth.position.set(
+      (Math.random() - 0.5) * 0.9,
+      0.16 + index * 0.06,
+      (Math.random() - 0.5) * 0.7,
+    );
+    cloth.castShadow = true;
+    pile.add(cloth);
+  }
+
+  pile.position.set(...position);
+  pile.rotation.y = rotationY;
+  parent.add(pile);
+}
+
+function createLantern(parent, { position, height = 2.8 }) {
+  const lantern = new THREE.Group();
+  const postMaterial = makeStandardMaterial(0x715235, 0.9);
+  const glowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffd69a,
+    emissive: 0xffd69a,
+    emissiveIntensity: 0.55,
+    roughness: 0.35,
+    metalness: 0.02,
+  });
+
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, height, 10), postMaterial);
+  post.position.y = height * 0.5;
+  post.castShadow = true;
+  lantern.add(post);
+
+  const crossBar = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.08, 0.08), postMaterial);
+  crossBar.position.set(0.22, height - 0.18, 0);
+  crossBar.castShadow = true;
+  lantern.add(crossBar);
+
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), glowMaterial);
+  glow.position.set(0.44, height - 0.42, 0);
+  lantern.add(glow);
+
+  lantern.position.set(...position);
+  parent.add(lantern);
+}
+
+function createFireflyCloud(parent, { position, radius = 2.4, count = 6 }) {
+  const cloud = new THREE.Group();
+  const material = new THREE.MeshBasicMaterial({
+    color: 0xfff0a8,
+    transparent: true,
+    opacity: 0.8,
+  });
+
+  for (let index = 0; index < count; index += 1) {
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.08 + Math.random() * 0.03, 8, 8), material);
+    glow.position.set(
+      (Math.random() - 0.5) * radius,
+      (Math.random() - 0.5) * 0.8,
+      (Math.random() - 0.5) * radius,
+    );
+    cloud.add(glow);
+  }
+
+  cloud.position.set(...position);
+  parent.add(cloud);
+}
+
+function createClothesline(parent, { position, rotationY = 0, span = 8 }) {
+  const line = new THREE.Group();
+  const postMaterial = makeStandardMaterial(0x8d6845, 0.9);
+  const ropeMaterial = makeStandardMaterial(0xf4efe5, 0.75);
+  const laundryColors = [0xf7efe5, 0xf3d2a2, 0xffb7ca, 0xbfd6ff];
+
+  for (const side of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 3.4, 10), postMaterial);
+    post.position.set(side * (span * 0.5), 1.7, 0);
+    post.castShadow = true;
+    line.add(post);
+  }
+
+  const rope = new THREE.Mesh(
+    new THREE.BoxGeometry(span + 0.1, 0.04, 0.04),
+    ropeMaterial,
+  );
+  rope.position.y = 3.02;
+  line.add(rope);
+
+  for (let index = 0; index < 5; index += 1) {
+    const cloth = new THREE.Mesh(
+      new THREE.BoxGeometry(0.58 + (index % 2) * 0.18, 0.72 + (index % 3) * 0.08, 0.06),
+      makeStandardMaterial(laundryColors[index % laundryColors.length], 0.95),
+    );
+    cloth.position.set(-span * 0.32 + index * (span * 0.16), 2.56 - (index % 2) * 0.05, 0);
+    cloth.rotation.z = (Math.random() - 0.5) * 0.18;
+    cloth.castShadow = true;
+    line.add(cloth);
+  }
+
+  line.position.set(...position);
+  line.rotation.y = rotationY;
+  parent.add(line);
+}
+
+function applyDressing(level, variantGroup) {
+  const dressing = level.dressing ?? {};
+
+  (dressing.trees ?? []).forEach((tree) => createTree(variantGroup, tree.position, tree.scale));
+  (dressing.bushes ?? []).forEach((bush) => createBush(variantGroup, bush.position, bush.scale));
+  (dressing.flowerPatches ?? []).forEach((patch) => createFlowerPatch(variantGroup, patch));
+  (dressing.toyBones ?? []).forEach((bone) => createToyBone(variantGroup, bone));
+  (dressing.laundryBaskets ?? []).forEach((basket) => createLaundryBasket(variantGroup, basket));
+  (dressing.laundryPiles ?? []).forEach((pile) => createLaundryPile(variantGroup, pile));
+  (dressing.lanterns ?? []).forEach((lantern) => createLantern(variantGroup, lantern));
+  (dressing.fireflies ?? []).forEach((cloud) => createFireflyCloud(variantGroup, cloud));
+  (dressing.clotheslines ?? []).forEach((line) => createClothesline(variantGroup, line));
 }
 
 export function buildEnvironment({ scene, worldSize }) {
-  addLights(scene);
-  addSkyDome(scene);
-  createGround(scene);
-  createFence(scene, worldSize);
-  createHouseAndPorch(scene);
+  const baseGroup = new THREE.Group();
+  baseGroup.name = "environment-base";
+  const variantGroup = new THREE.Group();
+  variantGroup.name = "environment-variant";
+  scene.add(baseGroup, variantGroup);
 
-  createTree(scene, new THREE.Vector3(-19, 0, -13), 1.3);
-  createTree(scene, new THREE.Vector3(16, 0, -17), 1.1);
-  createTree(scene, new THREE.Vector3(-23, 0, 8), 0.95);
-  createTree(scene, new THREE.Vector3(21, 0, 10), 1.05);
+  const lights = addLights(scene);
+  const sky = addSkyDome(scene);
+  const ground = createGround(baseGroup);
+  createFence(baseGroup, worldSize);
+  const house = createHouseAndPorch(baseGroup);
 
-  createFlowerPatch(scene, new THREE.Vector3(-7.5, 0, 20.2));
-  createFlowerPatch(scene, new THREE.Vector3(8.4, 0, 20.4));
-  createFlowerPatch(scene, new THREE.Vector3(-18.5, 0, 2.5));
-  createFlowerPatch(scene, new THREE.Vector3(14.8, 0, -7.8));
+  return {
+    applyLevel(level) {
+      const mood = level.mood;
+      scene.fog.color.setHex(mood.fogColor);
+      lights.hemi.color.setHex(mood.hemiSkyColor);
+      lights.hemi.groundColor.setHex(mood.hemiGroundColor);
+      lights.hemi.intensity = mood.hemiIntensity;
+      lights.sun.color.setHex(mood.sunColor);
+      lights.sun.intensity = mood.sunIntensity;
+      lights.sun.position.set(...mood.sunPosition);
+      ground.groundMaterial.color.setHex(mood.groundColor);
+      ground.pathMaterial.color.setHex(mood.pathColor);
+      sky.uniforms.colorA.value.setHex(mood.skyTop);
+      sky.uniforms.colorB.value.setHex(mood.skyBottom);
 
-  createToyBone(scene, new THREE.Vector3(10.2, 0.16, 5.5));
-  createToyBone(scene, new THREE.Vector3(-8.7, 0.16, -4.8));
+      house.windowPanes.forEach((pane) => {
+        pane.material.color.setHex(mood.windowColor);
+        pane.material.opacity = mood.windowOpacity;
+        pane.material.emissive.setHex(mood.windowGlow);
+        pane.material.emissiveIntensity = mood.windowGlowIntensity;
+      });
+
+      clearGroup(variantGroup);
+      applyDressing(level, variantGroup);
+    },
+  };
 }
