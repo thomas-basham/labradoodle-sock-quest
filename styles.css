@@ -98,6 +98,69 @@ canvas {
   align-items: center;
 }
 
+.score-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.score-strip p {
+  margin: 0;
+}
+
+.score-chip,
+.combo-chip {
+  border-radius: 18px;
+  border: 1px solid rgba(45, 29, 15, 0.12);
+  background: rgba(255, 249, 232, 0.72);
+  padding: 12px 14px;
+}
+
+.score-chip {
+  min-width: 118px;
+}
+
+.combo-chip {
+  flex: 1 1 240px;
+  background:
+    linear-gradient(180deg, rgba(255, 236, 190, 0.88), rgba(255, 247, 223, 0.82)),
+    rgba(255, 249, 232, 0.78);
+}
+
+.combo-chip[hidden] {
+  display: none;
+}
+
+.score-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+}
+
+.score-value {
+  margin-top: 4px;
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.combo-label {
+  margin-top: 4px;
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.combo-detail {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: rgba(52, 36, 20, 0.82);
+}
+
 .eyebrow {
   margin: 0 0 8px;
   font-size: 0.72rem;
@@ -482,6 +545,10 @@ h2 {
   border-top: 1px solid rgba(45, 29, 15, 0.12);
 }
 
+.overlay-summary + .overlay-summary {
+  margin-top: 14px;
+}
+
 .overlay-summary.hidden {
   display: none;
 }
@@ -503,9 +570,23 @@ h2 {
   letter-spacing: -0.04em;
 }
 
+.overlay-stat-detail {
+  margin-top: 4px;
+  font-size: 0.92rem;
+  color: rgba(52, 36, 20, 0.82);
+}
+
 .overlay-best-notice {
   margin-top: 12px;
   font-weight: 800;
+  color: var(--accent-dark);
+}
+
+.overlay-section-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--accent-dark);
 }
 

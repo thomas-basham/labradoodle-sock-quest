@@ -38,6 +38,19 @@ import {
   getSniffHint,
 } from "./config";
 import { LevelManager } from "./LevelManager";
+import {
+  beginNextRoundScoring,
+  createScoringState,
+  formatScore,
+  getComboStatus,
+  getRoundScoreBreakdown,
+  loadStoredHighScore,
+  resetCampaignScoring,
+  restartRoundScoring,
+  saveStoredHighScore,
+  scoreSockReturn,
+  shiftScoringTimers,
+} from "./scoring";
 import { applyQualityPreset, loadSettings, updateSettings } from "./settings";
 import {
   createDogState,
@@ -80,6 +93,7 @@ export class Game {
     this.previousDogPosition = new THREE.Vector3();
 
     this.worldState = createWorldState();
+    this.scoringState = createScoringState();
     this.pointerState = createPointerState();
     this.inputState = createInputState();
     this.touchState = createTouchState();
@@ -118,7 +132,10 @@ export class Game {
     this.hud.setProgress(this.worldState.socksReturned, this.worldState.totalSocks);
     this.hud.setRoundTime(formatElapsedTime(this.worldState.roundTimeMs));
     this.worldState.bestTimeMs = loadStoredBestTime(ROUND_CONFIG.bestTimeStorageKey);
+    this.scoringState.highScore = loadStoredHighScore();
     this.hud.setBestTime(formatElapsedTime(this.worldState.bestTimeMs));
+    this.hud.setScore(formatScore(this.scoringState.campaignScore));
+    this.hud.setCombo(null);
     this.hud.setSniffHint(this.worldState.sniffHint);
     this.hud.setSniffCooldown(0, SNIFF_CONFIG.cooldownMs);
     this.hud.setFlavor(DEFAULT_FLAVOR_MESSAGE);
@@ -172,6 +189,7 @@ export class Game {
     window.addEventListener("resize", this.handleResize);
     this.animationFrameId = null;
     this.updateSniffUi();
+    this.updateComboUi();
   }
 
   start() {
@@ -253,12 +271,14 @@ export class Game {
   beginCampaign() {
     this.levelManager.resetCampaign();
     this.worldState.campaignElapsedMs = 0;
-    this.startRound();
+    resetCampaignScoring(this.scoringState);
+    this.setScore(this.scoringState.campaignScore);
+    this.startRound({ carryOverScore: false });
   }
 
   advanceToNextLevel() {
     if (this.levelManager.advanceLevel()) {
-      this.startRound();
+      this.startRound({ carryOverScore: true });
     }
   }
 
@@ -280,6 +300,10 @@ export class Game {
   setBestTime(milliseconds) {
     this.worldState.bestTimeMs = milliseconds;
     this.hud.setBestTime(formatElapsedTime(milliseconds));
+  }
+
+  setScore(score) {
+    this.hud.setScore(formatScore(score));
   }
 
   setSniffHint(text) {
@@ -336,6 +360,35 @@ export class Game {
     if (this.sniffButton) {
       this.sniffButton.disabled = !sniffAvailable;
     }
+  }
+
+  updateComboUi(now = performance.now()) {
+    const referenceNow =
+      this.worldState.paused && this.pauseStartedAt !== null ? this.pauseStartedAt : now;
+    const comboStatus = getComboStatus(this.scoringState, referenceNow);
+
+    if (!comboStatus.active) {
+      this.hud.setCombo(null);
+      return;
+    }
+
+    this.hud.setCombo({
+      label: `${comboStatus.label} x${comboStatus.count}`,
+      detail: `+${formatScore(comboStatus.bonus)} combo bonus · ${(comboStatus.remainingMs / 1000).toFixed(1)}s to keep it rolling`,
+    });
+  }
+
+  getRoundScoreSummary() {
+    const breakdown = getRoundScoreBreakdown(this.scoringState);
+
+    return {
+      socksReturnedText: `${breakdown.returnedCount} / ${this.worldState.totalSocks}`,
+      basePointsText: `${formatScore(breakdown.basePoints)} pts base`,
+      timeBonusText: `+${formatScore(breakdown.timeBonus)}`,
+      comboBonusText: `+${formatScore(breakdown.comboBonus)}`,
+      finalScoreText: formatScore(breakdown.finalScore),
+      campaignScoreText: formatScore(this.scoringState.campaignScore),
+    };
   }
 
   getRandomFlavor() {
@@ -456,12 +509,14 @@ export class Game {
     }
 
     this.hazardSystem.shiftTimers(pauseDuration);
+    shiftScoringTimers(this.scoringState, pauseDuration);
     this.audioSystem.setPaused(false);
     this.overlay.hide();
+    this.updateComboUi(now);
     this.updateSniffUi(now);
   }
 
-  startRound() {
+  startRound({ carryOverScore = false } = {}) {
     const currentLevel = this.levelManager.getCurrentLevel();
     this.worldState.paused = false;
     this.pauseStartedAt = null;
@@ -489,14 +544,21 @@ export class Game {
     this.dogState.hasSock = false;
     this.sniffCooldownEndsAt = 0;
     this.roundStartTime = performance.now();
+    if (carryOverScore) {
+      beginNextRoundScoring(this.scoringState, this.roundStartTime);
+    } else {
+      restartRoundScoring(this.scoringState, this.roundStartTime);
+    }
     this.overlay.hide();
     this.setSocksReturned(0);
     this.setRoundTime(0);
+    this.setScore(this.scoringState.campaignScore);
     this.setObjective(getSearchingObjective(0, this.worldState.totalSocks));
     this.setSniffHint(SNIFF_CONFIG.defaultHint);
     this.setFlavor(this.getRandomFlavor());
     this.setHazardStatus(HAZARD_CONFIG.defaultStatus);
     this.setSprinklerOverlay(0);
+    this.updateComboUi(this.roundStartTime);
     this.updateSniffUi(this.roundStartTime);
   }
 
@@ -505,6 +567,7 @@ export class Game {
     const totalTime = performance.now() - this.roundStartTime;
     const previousBest = this.worldState.bestTimeMs;
     const isNewBest = previousBest === null || totalTime < previousBest;
+    const roundScoreSummary = this.getRoundScoreSummary();
 
     this.audioSystem.playRoundComplete();
     triggerOwnerCelebrate(this.owner, randomItem(OWNER_CELEBRATION_LINES));
@@ -516,6 +579,7 @@ export class Game {
     this.setRoundTime(totalTime);
     this.setSniffHint(SNIFF_CONFIG.completeHint);
     this.sockManager.hideMarkers();
+    this.hud.setCombo(null);
 
     const bestTime = isNewBest ? totalTime : previousBest;
     if (isNewBest) {
@@ -534,14 +598,28 @@ export class Game {
         levelTimeText: formatElapsedTime(totalTime),
         bestTimeText: formatElapsedTime(bestTime),
         isNewBest,
+        ...roundScoreSummary,
         settings: this.settings,
         supportsAudio: this.audioSystem.isSupported(),
       });
     } else {
+      const previousHighScore = this.scoringState.highScore;
+      const isNewHighScore =
+        previousHighScore === null || this.scoringState.campaignScore > previousHighScore;
+      const highScore = isNewHighScore ? this.scoringState.campaignScore : previousHighScore;
+
+      if (isNewHighScore) {
+        saveStoredHighScore(highScore);
+      }
+
+      this.scoringState.highScore = highScore;
       this.setObjective("Campaign complete. Ray solved every backyard sock mystery.");
       this.overlay.showGameComplete({
         totalCampaignTimeText: formatElapsedTime(this.worldState.campaignElapsedMs),
         bestTimeText: formatElapsedTime(bestTime),
+        finalScoreText: formatScore(this.scoringState.campaignScore),
+        highScoreText: formatScore(highScore),
+        isNewHighScore,
         totalLevels: this.levelManager.getTotalLevels(),
         settings: this.settings,
         supportsAudio: this.audioSystem.isSupported(),
@@ -551,7 +629,7 @@ export class Game {
   }
 
   resetRound() {
-    this.startRound();
+    this.startRound({ carryOverScore: false });
   }
 
   pickupSock() {
@@ -608,9 +686,13 @@ export class Game {
 
     const result = this.sockManager.tryReturn(this.dog.position, this.tempVector);
     if (result.returned) {
+      const now = performance.now();
+      scoreSockReturn(this.scoringState, now);
       this.audioSystem.playReturn();
       this.dogState.hasSock = false;
       this.setSocksReturned(result.returnedCount);
+      this.setScore(this.scoringState.campaignScore);
+      this.updateComboUi(now);
 
       if (result.roundComplete) {
         this.completeRound();
@@ -709,6 +791,7 @@ export class Game {
       this.checkObjectives();
     }
 
+    this.updateComboUi(now);
     this.updateSniffUi();
     this.renderer.render(this.scene, this.camera);
     this.animationFrameId = requestAnimationFrame(this.render);

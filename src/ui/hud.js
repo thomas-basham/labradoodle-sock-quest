@@ -8,6 +8,10 @@ function pulseElement(element) {
 export function createHud() {
   const dogName = document.getElementById("dogName");
   const levelIndicator = document.getElementById("levelIndicator");
+  const scoreValue = document.getElementById("scoreValue");
+  const comboChip = document.getElementById("comboChip");
+  const comboLabel = document.getElementById("comboLabel");
+  const comboDetail = document.getElementById("comboDetail");
   const objectiveText = document.getElementById("objectiveText");
   const sockProgress = document.getElementById("sockProgress");
   const roundTime = document.getElementById("roundTime");
@@ -23,6 +27,8 @@ export function createHud() {
   const soundToggleButton = document.getElementById("soundToggleButton");
   const menuButton = document.getElementById("menuButton");
   let lastReturnedCount = 0;
+  let lastScoreText = "";
+  let lastComboLabel = "";
 
   return {
     setName(text) {
@@ -54,6 +60,37 @@ export function createHud() {
 
     setBestTime(text) {
       bestTime.textContent = text;
+    },
+
+    setScore(text) {
+      if (text !== lastScoreText) {
+        pulseElement(scoreValue);
+      }
+
+      lastScoreText = text;
+      scoreValue.textContent = text;
+    },
+
+    setCombo(combo) {
+      if (!comboChip || !comboLabel || !comboDetail) {
+        return;
+      }
+
+      if (!combo) {
+        comboChip.hidden = true;
+        lastComboLabel = "";
+        return;
+      }
+
+      const shouldPulse = comboChip.hidden || combo.label !== lastComboLabel;
+      comboChip.hidden = false;
+      comboLabel.textContent = combo.label;
+      comboDetail.textContent = combo.detail;
+      lastComboLabel = combo.label;
+
+      if (shouldPulse) {
+        pulseElement(comboChip);
+      }
     },
 
     setSniffHint(text) {

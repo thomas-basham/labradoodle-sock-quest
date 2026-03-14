@@ -194,6 +194,20 @@ export const ROUND_CONFIG = {
   bestTimeStorageKey: "ray-sock-quest-best-time-ms",
 };
 
+export const SCORING_CONFIG = {
+  basePointsPerSock: 100,
+  maxTimeBonusPerSock: 90,
+  fastReturnWindowMs: 18000,
+  comboWindowMs: 8500,
+  highScoreStorageKey: "ray-sock-quest-high-score",
+  comboTiers: [
+    { minimumChain: 2, label: "Laundry Menace", bonus: 40 },
+    { minimumChain: 3, label: "Hamper Hunter", bonus: 80 },
+    { minimumChain: 4, label: "Sock Savant", bonus: 130 },
+    { minimumChain: 5, label: "Dryer Bandit", bonus: 190 },
+  ],
+};
+
 export const AUDIO_CONFIG = {
   storageKey: "ray-sock-quest-sound-enabled",
   enabledByDefault: true,

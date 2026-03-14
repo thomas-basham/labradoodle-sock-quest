@@ -168,6 +168,41 @@ function renderSettingsScreen(settings, audioSupported) {
   `;
 }
 
+function renderScoreBreakdown({
+  socksReturnedText,
+  basePointsText,
+  timeBonusText,
+  comboBonusText,
+  finalScoreText,
+  campaignScoreText,
+}) {
+  return `
+    <section class="overlay-summary overlay-summary-breakdown">
+      <p class="overlay-section-label">Score breakdown</p>
+      <div class="overlay-summary-grid">
+        <div class="overlay-stat">
+          <p class="meta-label">Socks returned</p>
+          <p class="overlay-stat-value">${socksReturnedText}</p>
+          <p class="overlay-stat-detail">${basePointsText}</p>
+        </div>
+        <div class="overlay-stat">
+          <p class="meta-label">Time bonus</p>
+          <p class="overlay-stat-value">${timeBonusText}</p>
+        </div>
+        <div class="overlay-stat">
+          <p class="meta-label">Combo bonus</p>
+          <p class="overlay-stat-value">${comboBonusText}</p>
+        </div>
+        <div class="overlay-stat">
+          <p class="meta-label">Final score</p>
+          <p class="overlay-stat-value">${finalScoreText}</p>
+        </div>
+      </div>
+      <p class="overlay-best-notice">Campaign score: ${campaignScoreText}</p>
+    </section>
+  `;
+}
+
 function renderLevelCompleteScreen({
   levelName,
   nextLevelName,
@@ -176,6 +211,12 @@ function renderLevelCompleteScreen({
   levelTimeText,
   bestTimeText,
   isNewBest,
+  socksReturnedText,
+  basePointsText,
+  timeBonusText,
+  comboBonusText,
+  finalScoreText,
+  campaignScoreText,
 }) {
   return `
     <p class="eyebrow">Yard Cleared</p>
@@ -194,6 +235,14 @@ function renderLevelCompleteScreen({
       </div>
       <p class="overlay-best-notice">${isNewBest ? "New best time!" : "Best yard time stands."}</p>
     </div>
+    ${renderScoreBreakdown({
+      socksReturnedText,
+      basePointsText,
+      timeBonusText,
+      comboBonusText,
+      finalScoreText,
+      campaignScoreText,
+    })}
     <div class="overlay-actions">
       <button type="button" data-action="next-level">Next yard</button>
       <button class="secondary-button" type="button" data-action="open-controls">Controls</button>
@@ -202,7 +251,14 @@ function renderLevelCompleteScreen({
   `;
 }
 
-function renderGameCompleteScreen({ totalCampaignTimeText, bestTimeText, totalLevels }) {
+function renderGameCompleteScreen({
+  totalCampaignTimeText,
+  bestTimeText,
+  totalLevels,
+  finalScoreText,
+  highScoreText,
+  isNewHighScore,
+}) {
   return `
     <p class="eyebrow">Laundry Masterclass</p>
     <h2>Every backyard conquered</h2>
@@ -214,11 +270,21 @@ function renderGameCompleteScreen({ totalCampaignTimeText, bestTimeText, totalLe
           <p class="overlay-stat-value">${totalCampaignTimeText}</p>
         </div>
         <div class="overlay-stat">
+          <p class="meta-label">Final score</p>
+          <p class="overlay-stat-value">${finalScoreText}</p>
+        </div>
+        <div class="overlay-stat">
+          <p class="meta-label">High score</p>
+          <p class="overlay-stat-value">${highScoreText}</p>
+        </div>
+        <div class="overlay-stat">
           <p class="meta-label">Best single yard</p>
           <p class="overlay-stat-value">${bestTimeText}</p>
         </div>
       </div>
-      <p class="overlay-best-notice">Sunny, evening, and laundry chaos: fully solved.</p>
+      <p class="overlay-best-notice">
+        ${isNewHighScore ? "New high score for Ray's backyard run!" : "Sunny, evening, and laundry chaos: fully solved."}
+      </p>
     </div>
     <div class="overlay-actions">
       <button type="button" data-action="replay-campaign">Replay campaign</button>
