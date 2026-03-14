@@ -3,12 +3,13 @@ import * as THREE from "three";
 import {
   DOG_CONFIG,
   MARKER_CONFIG,
+  MOVEMENT_CONFIG,
   PALETTE,
   ROUND_CONFIG,
   SNIFF_CONFIG,
   SOCK_SPAWN_POINTS,
 } from "../game/config";
-import { takeRandomItems } from "../utils/math";
+import { clamp, takeRandomItems } from "../utils/math";
 import {
   attachSockToDog,
   createObjectiveMarkers,
@@ -217,15 +218,25 @@ export class SockManager {
     }
 
     const droppedSock = this.carriedSock;
-    const dropOffsetX = Math.sin(yaw) * 0.95;
-    const dropOffsetZ = Math.cos(yaw) * 0.95;
+    const dropOffsetX = Math.sin(yaw) * 1.15;
+    const dropOffsetZ = Math.cos(yaw) * 1.15;
+    const dropX = clamp(
+      position.x + dropOffsetX,
+      MOVEMENT_CONFIG.bounds.x[0] + 0.8,
+      MOVEMENT_CONFIG.bounds.x[1] - 0.8,
+    );
+    const dropZ = clamp(
+      position.z + dropOffsetZ,
+      MOVEMENT_CONFIG.bounds.z[0] + 0.8,
+      MOVEMENT_CONFIG.bounds.z[1] - 0.8,
+    );
 
     this.carriedSock = null;
     this.clearSniffEffects();
     placeSockAt({
       sock: droppedSock,
       scene: this.scene,
-      position: [position.x + dropOffsetX, 0.2, position.z + dropOffsetZ],
+      position: [dropX, 0.2, dropZ],
       rotationY: yaw + Math.PI * 0.35,
     });
     setSockFocus(droppedSock, true);

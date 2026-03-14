@@ -65,6 +65,10 @@ import {
 } from "./state";
 
 function createRenderer(mount) {
+  if (!(mount instanceof HTMLElement)) {
+    throw new Error("Ray's Sock Quest could not find a valid render mount.");
+  }
+
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -578,6 +582,10 @@ export class Game {
     this.environment.applyLevel(currentLevel);
     this.setLevelLabel(this.levelManager.getLevelLabel());
     resetDog(this.dog, this.dogState);
+    if (this.camera.userData.lookAhead) {
+      this.camera.userData.lookAhead.set(0, 0, 0);
+    }
+    this.camera.userData.bobWeight = 0;
     resetOwner(this.owner);
     this.juiceSystem.reset();
     this.sockManager.resetRound({
@@ -832,6 +840,7 @@ export class Game {
         pointerState: this.pointerState,
         delta,
         elapsed,
+        dogYaw: this.dogState.yaw,
         movementIntensity: Math.min(1, this.dogState.speed / MOVEMENT_CONFIG.sprintSpeed),
         sprinting: this.inputState.sprint,
       });

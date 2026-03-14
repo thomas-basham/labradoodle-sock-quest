@@ -18,6 +18,12 @@ export function registerTouchControls({
   canControl = () => true,
   getLookSettings = () => ({ mouseSensitivity: 1, invertY: false }),
 }) {
+  if (!canvas || !movePad || !moveKnob || !sniffButton || !sprintButton) {
+    return () => {};
+  }
+
+  let lastTouchSniffAt = 0;
+
   function setMoveVector(x, y) {
     touchState.moveVector.set(x, y);
     inputState.moveX = x;
@@ -29,7 +35,11 @@ export function registerTouchControls({
     setMoveVector(0, 0);
   }
 
-  function handlePointerDown() {
+  function handlePointerDown(event) {
+    if (event.pointerType !== "mouse" || event.button !== 0) {
+      return;
+    }
+
     if (!canControl()) {
       return;
     }
@@ -121,8 +131,16 @@ export function registerTouchControls({
 
   function handleSniff(event) {
     event.preventDefault();
+    if (event.type === "click" && Date.now() - lastTouchSniffAt < 500) {
+      return;
+    }
+
     if (!canControl()) {
       return;
+    }
+
+    if (event.type === "touchstart") {
+      lastTouchSniffAt = Date.now();
     }
 
     onSniff();
@@ -186,8 +204,10 @@ export function registerTouchControls({
   }
 
   canvas.addEventListener("pointerdown", handlePointerDown);
+  window.addEventListener("pointercancel", handlePointerUp);
   window.addEventListener("pointerup", handlePointerUp);
   window.addEventListener("pointermove", handlePointerMove);
+  window.addEventListener("blur", handlePointerUp);
 
   movePad.addEventListener("touchstart", handleMoveTouchStart, { passive: true });
   movePad.addEventListener("touchmove", handleMoveTouchMove, { passive: true });
@@ -208,8 +228,10 @@ export function registerTouchControls({
 
   return () => {
     canvas.removeEventListener("pointerdown", handlePointerDown);
+    window.removeEventListener("pointercancel", handlePointerUp);
     window.removeEventListener("pointerup", handlePointerUp);
     window.removeEventListener("pointermove", handlePointerMove);
+    window.removeEventListener("blur", handlePointerUp);
 
     movePad.removeEventListener("touchstart", handleMoveTouchStart);
     movePad.removeEventListener("touchmove", handleMoveTouchMove);

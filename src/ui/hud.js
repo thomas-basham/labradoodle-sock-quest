@@ -1,8 +1,24 @@
 function pulseElement(element) {
+  if (!element) {
+    return;
+  }
+
   element.classList.remove("ui-pop");
   // Force a reflow so repeated score changes still retrigger the animation.
   void element.offsetWidth;
   element.classList.add("ui-pop");
+}
+
+function setText(element, text) {
+  if (element) {
+    element.textContent = text;
+  }
+}
+
+function setStyle(element, property, value) {
+  if (element) {
+    element.style[property] = value;
+  }
 }
 
 export function createHud() {
@@ -32,17 +48,15 @@ export function createHud() {
 
   return {
     setName(text) {
-      dogName.textContent = text;
+      setText(dogName, text);
     },
 
     setLevel(text) {
-      if (levelIndicator) {
-        levelIndicator.textContent = text;
-      }
+      setText(levelIndicator, text);
     },
 
     setObjective(text) {
-      objectiveText.textContent = text;
+      setText(objectiveText, text);
     },
 
     setProgress(returnedCount, totalSocks) {
@@ -51,15 +65,15 @@ export function createHud() {
       }
 
       lastReturnedCount = returnedCount;
-      sockProgress.textContent = `${returnedCount} / ${totalSocks}`;
+      setText(sockProgress, `${returnedCount} / ${totalSocks}`);
     },
 
     setRoundTime(text) {
-      roundTime.textContent = text;
+      setText(roundTime, text);
     },
 
     setBestTime(text) {
-      bestTime.textContent = text;
+      setText(bestTime, text);
     },
 
     setScore(text) {
@@ -68,7 +82,7 @@ export function createHud() {
       }
 
       lastScoreText = text;
-      scoreValue.textContent = text;
+      setText(scoreValue, text);
     },
 
     setCombo(combo) {
@@ -84,8 +98,8 @@ export function createHud() {
 
       const shouldPulse = comboChip.hidden || combo.label !== lastComboLabel;
       comboChip.hidden = false;
-      comboLabel.textContent = combo.label;
-      comboDetail.textContent = combo.detail;
+      setText(comboLabel, combo.label);
+      setText(comboDetail, combo.detail);
       lastComboLabel = combo.label;
 
       if (shouldPulse) {
@@ -94,30 +108,34 @@ export function createHud() {
     },
 
     setSniffHint(text) {
-      sniffHint.textContent = text;
+      setText(sniffHint, text);
     },
 
     setSniffCooldown(remainingMs, cooldownMs) {
       const progress = cooldownMs === 0 ? 1 : Math.max(0, Math.min(1, 1 - remainingMs / cooldownMs));
-      sniffCooldownFill.style.transform = `scaleX(${progress})`;
-      sniffCooldownText.textContent = remainingMs > 0 ? `${(remainingMs / 1000).toFixed(1)}s` : "Ready";
+      setStyle(sniffCooldownFill, "transform", `scaleX(${progress})`);
+      setText(sniffCooldownText, remainingMs > 0 ? `${(remainingMs / 1000).toFixed(1)}s` : "Ready");
     },
 
     setFlavor(text) {
-      flavorText.textContent = text;
+      setText(flavorText, text);
     },
 
     setHazardStatus({ badge, title, detail }) {
-      hazardBadge.textContent = badge;
-      hazardTitle.textContent = title;
-      hazardText.textContent = detail;
+      setText(hazardBadge, badge);
+      setText(hazardTitle, title);
+      setText(hazardText, detail);
     },
 
     setSprinklerOverlay(intensity) {
-      sprinklerOverlay.style.opacity = intensity.toFixed(3);
+      setStyle(sprinklerOverlay, "opacity", intensity.toFixed(3));
     },
 
     setSoundEnabled(enabled, supported = true) {
+      if (!soundToggleButton) {
+        return;
+      }
+
       soundToggleButton.disabled = !supported;
       soundToggleButton.setAttribute("aria-pressed", String(enabled));
       soundToggleButton.textContent = supported ? (enabled ? "Sound On" : "Sound Off") : "Sound N/A";

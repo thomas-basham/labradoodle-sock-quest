@@ -43,7 +43,6 @@ export const PALETTE = {
 
 export const OBJECTIVES = {
   intro: "Ray is on backyard patrol and ready to sniff out a runaway sock.",
-  complete: "Round complete. Ray returned every last sock to Becca's side of the porch.",
 };
 
 export function getSearchingObjective(returnedCount, totalSocks) {
@@ -55,19 +54,6 @@ export function getReturningObjective(returnedCount, totalSocks) {
   const currentSock = Math.min(returnedCount + 1, totalSocks);
   return `Sock ${currentSock} of ${totalSocks} secured. Bring it back to Becca by the porch.`;
 }
-
-export const OVERLAY_COPY = {
-  intro: {
-    title: "Ray and the Missing Sock",
-    body: "Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos. Track down the missing socks, tap sniff when you need a lead, grab each one, and parade it back to Becca like the neighborhood legend she is.",
-    buttonLabel: "Unleash Ray",
-  },
-  complete: {
-    title: "Round complete",
-    body: "Ray rounded up every missing sock in the yard, and Becca is fully convinced she lives with a laundry prodigy.",
-    buttonLabel: "Play again",
-  },
-};
 
 export const DEFAULT_FLAVOR_MESSAGE = "Ray's sock radar is on warm-up duty.";
 
@@ -130,6 +116,9 @@ export const CAMERA_CONFIG = {
   minPitch: -0.15,
   maxPitch: 0.6,
   followDamping: 5,
+  lookAheadDistance: 0.85,
+  lookAheadLift: 0.2,
+  lookAheadDamping: 6,
   mouseYawSpeed: 0.0034,
   mousePitchSpeed: 0.0022,
   touchYawSpeed: 0.004,
@@ -296,11 +285,6 @@ export const VACUUM_CONFIG = {
   chaseDurationMs: 2600,
   alertHoldMs: 1350,
   bumpCooldownMs: 2200,
-  status: {
-    badge: "Vacuum",
-    title: "Robot patrol",
-    detail: "A cheerful little appliance is reconsidering Ray's route.",
-  },
   chaseStatus: {
     badge: "Vacuum",
     title: "Robot vacuum locked on",

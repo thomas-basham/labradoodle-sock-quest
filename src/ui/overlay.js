@@ -312,6 +312,33 @@ function renderGameCompleteScreen({
 export function createOverlay() {
   const overlay = document.getElementById("overlay");
   const panel = document.getElementById("overlayPanel");
+
+  if (!(overlay instanceof HTMLElement) || !(panel instanceof HTMLElement)) {
+    return {
+      showStart() {},
+      showPause() {},
+      showLevelComplete() {},
+      showGameComplete() {},
+      updateSettings() {},
+      hide() {},
+      isVisible() {
+        return false;
+      },
+      getScreen() {
+        return "start";
+      },
+      handleEscape() {
+        return false;
+      },
+      onAction() {
+        return () => {};
+      },
+      onSettingsChange() {
+        return () => {};
+      },
+    };
+  }
+
   let currentScreen = "start";
   let backScreen = "start";
   let currentSettings = null;

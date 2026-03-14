@@ -190,10 +190,10 @@ export class VacuumEnemy {
       };
     }
 
-    const distanceToDog = this.vacuum.position.distanceTo(dogPosition);
     let spotted = false;
     let bumped = false;
     let impulse = null;
+    let distanceToDog = this.vacuum.position.distanceTo(dogPosition);
 
     if (this.state !== "chase" && distanceToDog <= VACUUM_CONFIG.detectionRadius) {
       this.state = "chase";
@@ -230,6 +230,7 @@ export class VacuumEnemy {
       this.vacuum.rotation.y = lerpRadians(this.vacuum.rotation.y, desiredYaw, Math.min(1, delta * 8));
     }
 
+    distanceToDog = this.vacuum.position.distanceTo(dogPosition);
     if (distanceToDog <= VACUUM_CONFIG.bumpDistance && now >= this.bumpCooldownEndsAt) {
       bumpVector.copy(dogPosition).sub(this.vacuum.position);
       bumpVector.y = 0;
