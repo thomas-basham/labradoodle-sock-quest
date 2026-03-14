@@ -2,6 +2,8 @@
 
 A small browser-based 3D game built with Vite and Three.js.
 
+**Deployed Demo:** [https://main.d3bu01s2ujpqy6.amplifyapp.com](https://main.d3bu01s2ujpqy6.amplifyapp.com)
+
 ## Premise
 
 You play as a labradoodle in a fenced yard. Find the missing sock, pick it up, and return it to your owner on the porch.
