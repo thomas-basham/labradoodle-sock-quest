@@ -22,6 +22,8 @@ export const PALETTE = {
   sock: 0xf7efe5,
   sockStripe: 0xe37d47,
   path: 0xdab575,
+  scent: 0xffd88d,
+  scentGlow: 0xfff2bf,
 };
 
 export const OBJECTIVES = {
@@ -42,7 +44,7 @@ export function getReturningObjective(returnedCount, totalSocks) {
 export const OVERLAY_COPY = {
   intro: {
     title: "Ray and the Missing Sock",
-    body: "Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos. Track down the missing sock, grab it, and parade it back to her human like the neighborhood legend she is.",
+    body: "Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos. Track down the missing socks, tap sniff when you need a lead, grab each one, and parade it back to her human like the neighborhood legend she is.",
     buttonLabel: "Unleash Ray",
   },
   complete: {
@@ -113,6 +115,7 @@ export const DOG_CONFIG = {
   activeSpeedThreshold: 0.4,
   bounceHeight: 0.08,
   idleBounceHeight: 0.028,
+  sniffAnimationDuration: 0.75,
 };
 
 export const MARKER_CONFIG = {
@@ -135,6 +138,34 @@ export const ROUND_CONFIG = {
   socksPerRound: 5,
   bestTimeStorageKey: "ray-sock-quest-best-time-ms",
 };
+
+export const SNIFF_CONFIG = {
+  cooldownMs: 4500,
+  effectDurationSeconds: 1.8,
+  trailPuffCount: 6,
+  trailArcHeight: 0.7,
+  trailSideOffset: 0.58,
+  defaultHint: "Tap Sniff to sample the backyard sock breeze.",
+  introHint: "Press Space or tap Sniff once Ray is loose.",
+  returningHint: "Sock secured. Bring it back to Ray's human.",
+  completeHint: "Every sock has been accounted for.",
+};
+
+export function getSniffHint(distance) {
+  if (distance <= 4.5) {
+    return "Sock is basically under your nose";
+  }
+
+  if (distance <= 9) {
+    return "Very warm";
+  }
+
+  if (distance <= 16) {
+    return "Warm";
+  }
+
+  return "Ice cold";
+}
 
 export const SOCK_SPAWN_POINTS = [
   [-16, 0.2, -10],

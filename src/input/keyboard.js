@@ -1,4 +1,4 @@
-export function registerKeyboardControls({ inputState, onStart }) {
+export function registerKeyboardControls({ inputState, onStart, onSniff }) {
   function handleKeyDown(event) {
     const key = event.key.toLowerCase();
 
@@ -8,6 +8,12 @@ export function registerKeyboardControls({ inputState, onStart }) {
     if (key === "d" || key === "arrowright") inputState.right = true;
     if (key === "shift") inputState.sprint = true;
     if (key === "enter") onStart();
+    if (event.code === "Space") {
+      event.preventDefault();
+      if (!event.repeat) {
+        onSniff();
+      }
+    }
   }
 
   function handleKeyUp(event) {

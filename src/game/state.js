@@ -1,6 +1,13 @@
 import * as THREE from "three";
 
-import { CAMERA_CONFIG, GAME_STATES, OBJECTIVES, ROUND_CONFIG, WORLD_SIZE } from "./config";
+import {
+  CAMERA_CONFIG,
+  GAME_STATES,
+  OBJECTIVES,
+  ROUND_CONFIG,
+  SNIFF_CONFIG,
+  WORLD_SIZE,
+} from "./config";
 
 export function createWorldState() {
   return {
@@ -13,6 +20,7 @@ export function createWorldState() {
     roundTimeMs: 0,
     bestTimeMs: null,
     flavorText: "",
+    sniffHint: SNIFF_CONFIG.introHint,
   };
 }
 
@@ -54,5 +62,7 @@ export function createDogState(dog) {
     velocity: new THREE.Vector3(),
     hasSock: false,
     animationTime: 0,
+    sniffTimer: 0,
+    sniffAnimationTime: 0,
   };
 }

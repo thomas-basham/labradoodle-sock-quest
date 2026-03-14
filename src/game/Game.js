@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { createFollowCamera, resizeFollowCamera, updateFollowCamera } from "../camera/followCamera";
-import { createDog, resetDog, updateDog } from "../entities/dog";
+import { createDog, resetDog, triggerDogSniff, updateDog } from "../entities/dog";
 import { createOwner } from "../entities/owner";
 import { SockManager } from "../entities/sockManager";
 import { registerKeyboardControls } from "../input/keyboard";
@@ -20,8 +20,10 @@ import {
   OBJECTIVES,
   ROUND_CONFIG,
   SCENE_CONFIG,
+  SNIFF_CONFIG,
   getReturningObjective,
   getSearchingObjective,
+  getSniffHint,
 } from "./config";
 import {
   createDogState,
@@ -75,17 +77,22 @@ export class Game {
 
     this.hud = createHud();
     this.overlay = createOverlay();
+    this.sniffButton = document.getElementById("sniffButton");
+    this.sniffCooldownEndsAt = 0;
     this.hud.setName(DOG_NAME);
     this.hud.setObjective(this.worldState.objective);
     this.hud.setProgress(this.worldState.socksReturned, this.worldState.totalSocks);
     this.hud.setRoundTime(formatElapsedTime(this.worldState.roundTimeMs));
     this.worldState.bestTimeMs = loadStoredBestTime(ROUND_CONFIG.bestTimeStorageKey);
     this.hud.setBestTime(formatElapsedTime(this.worldState.bestTimeMs));
+    this.hud.setSniffHint(this.worldState.sniffHint);
+    this.hud.setSniffCooldown(0, SNIFF_CONFIG.cooldownMs);
     this.hud.setFlavor(DEFAULT_FLAVOR_MESSAGE);
     this.overlay.showIntro();
     this.roundStartTime = null;
 
     this.handleOverlayAction = this.handleOverlayAction.bind(this);
+    this.handleSniff = this.handleSniff.bind(this);
     this.tryStartGame = this.tryStartGame.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.render = this.render.bind(this);
@@ -95,13 +102,16 @@ export class Game {
       registerKeyboardControls({
         inputState: this.inputState,
         onStart: this.tryStartGame,
+        onSniff: this.handleSniff,
       }),
       registerTouchControls({
         canvas: this.renderer.domElement,
         movePad: document.getElementById("movePad"),
         moveKnob: document.getElementById("moveKnob"),
+        sniffButton: this.sniffButton,
         sprintButton: document.getElementById("sprintButton"),
         inputState: this.inputState,
+        onSniff: this.handleSniff,
         pointerState: this.pointerState,
         touchState: this.touchState,
       }),
@@ -109,6 +119,7 @@ export class Game {
 
     window.addEventListener("resize", this.handleResize);
     this.animationFrameId = null;
+    this.updateSniffUi();
   }
 
   start() {
@@ -150,9 +161,32 @@ export class Game {
     this.hud.setBestTime(formatElapsedTime(milliseconds));
   }
 
+  setSniffHint(text) {
+    this.worldState.sniffHint = text;
+    this.hud.setSniffHint(text);
+  }
+
   setFlavor(text) {
     this.worldState.flavorText = text;
     this.hud.setFlavor(text);
+  }
+
+  getSniffCooldownRemaining(now = performance.now()) {
+    return Math.max(0, this.sniffCooldownEndsAt - now);
+  }
+
+  updateSniffUi(now = performance.now()) {
+    const remainingMs = this.getSniffCooldownRemaining(now);
+    const sniffAvailable =
+      this.worldState.gameStarted &&
+      this.worldState.state === GAME_STATES.searching &&
+      remainingMs === 0;
+
+    this.hud.setSniffCooldown(remainingMs, SNIFF_CONFIG.cooldownMs);
+
+    if (this.sniffButton) {
+      this.sniffButton.disabled = !sniffAvailable;
+    }
   }
 
   getRandomFlavor() {
@@ -191,12 +225,15 @@ export class Game {
     this.worldState.gameStarted = true;
     this.worldState.state = GAME_STATES.searching;
     this.dogState.hasSock = false;
+    this.sniffCooldownEndsAt = 0;
     this.roundStartTime = performance.now();
     this.overlay.hide();
     this.setSocksReturned(0);
     this.setRoundTime(0);
     this.setObjective(getSearchingObjective(0, this.worldState.totalSocks));
+    this.setSniffHint(SNIFF_CONFIG.defaultHint);
     this.setFlavor(this.getRandomFlavor());
+    this.updateSniffUi(this.roundStartTime);
   }
 
   completeRound() {
@@ -206,8 +243,10 @@ export class Game {
 
     this.worldState.state = GAME_STATES.complete;
     this.worldState.gameStarted = false;
+    this.sniffCooldownEndsAt = 0;
     this.setRoundTime(totalTime);
     this.setObjective(OBJECTIVES.complete);
+    this.setSniffHint(SNIFF_CONFIG.completeHint);
     this.sockManager.hideMarkers();
 
     const bestTime = isNewBest ? totalTime : previousBest;
@@ -221,6 +260,7 @@ export class Game {
       bestTimeText: formatElapsedTime(bestTime),
       isNewBest,
     });
+    this.updateSniffUi();
   }
 
   resetRound() {
@@ -232,7 +272,30 @@ export class Game {
     this.setObjective(
       getReturningObjective(this.worldState.socksReturned, this.worldState.totalSocks),
     );
+    this.setSniffHint(SNIFF_CONFIG.returningHint);
     this.setFlavor(this.getRandomFlavor());
+    this.updateSniffUi();
+  }
+
+  handleSniff() {
+    const now = performance.now();
+    if (!this.worldState.gameStarted || this.worldState.state !== GAME_STATES.searching) {
+      return;
+    }
+
+    if (this.getSniffCooldownRemaining(now) > 0) {
+      return;
+    }
+
+    const target = this.sockManager.getActiveSockWorldPosition(this.tempVector);
+    if (!target || !this.sockManager.activateSniff()) {
+      return;
+    }
+
+    triggerDogSniff(this.dogState);
+    this.sniffCooldownEndsAt = now + SNIFF_CONFIG.cooldownMs;
+    this.setSniffHint(getSniffHint(this.dog.position.distanceTo(target)));
+    this.updateSniffUi(now);
   }
 
   checkObjectives() {
@@ -262,6 +325,8 @@ export class Game {
       this.setObjective(
         getSearchingObjective(this.worldState.socksReturned, this.worldState.totalSocks),
       );
+      this.setSniffHint(SNIFF_CONFIG.defaultHint);
+      this.updateSniffUi();
     }
   }
 
@@ -299,6 +364,12 @@ export class Game {
       elapsed,
       gameStarted: this.worldState.gameStarted,
     });
+    this.sockManager.updateSniffEffects({
+      delta,
+      elapsed,
+      gameStarted: this.worldState.gameStarted,
+    });
+    this.updateSniffUi();
 
     this.checkObjectives();
     this.renderer.render(this.scene, this.camera);

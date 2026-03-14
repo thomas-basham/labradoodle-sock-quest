@@ -2,15 +2,17 @@ import { CAMERA_CONFIG, JOYSTICK_CONFIG } from "../game/config";
 import { clamp, getJoystickVector } from "../utils/math";
 
 function isTouchOnElement(touch, element) {
-  return touch.target instanceof Element && element.contains(touch.target);
+  return element !== null && touch.target instanceof Element && element.contains(touch.target);
 }
 
 export function registerTouchControls({
   canvas,
   movePad,
   moveKnob,
+  sniffButton,
   sprintButton,
   inputState,
+  onSniff,
   pointerState,
   touchState,
 }) {
@@ -93,11 +95,22 @@ export function registerTouchControls({
     inputState.sprint = false;
   }
 
+  function handleSniff(event) {
+    event.preventDefault();
+    onSniff();
+  }
+
   function handleLookTouchStart(event) {
     for (const touch of event.changedTouches) {
       if (touch.identifier === touchState.moveId) continue;
       if (touchState.lookId !== null) continue;
-      if (isTouchOnElement(touch, movePad) || isTouchOnElement(touch, sprintButton)) continue;
+      if (
+        isTouchOnElement(touch, movePad) ||
+        isTouchOnElement(touch, sprintButton) ||
+        isTouchOnElement(touch, sniffButton)
+      ) {
+        continue;
+      }
 
       touchState.lookId = touch.identifier;
       pointerState.x = touch.clientX;
@@ -144,6 +157,9 @@ export function registerTouchControls({
   sprintButton.addEventListener("touchend", handleSprintEnd, { passive: true });
   sprintButton.addEventListener("touchcancel", handleSprintEnd, { passive: true });
 
+  sniffButton.addEventListener("touchstart", handleSniff, { passive: false });
+  sniffButton.addEventListener("click", handleSniff);
+
   window.addEventListener("touchstart", handleLookTouchStart, { passive: true });
   window.addEventListener("touchmove", handleLookTouchMove, { passive: true });
   window.addEventListener("touchend", clearLookTouch, { passive: true });
@@ -162,6 +178,9 @@ export function registerTouchControls({
     sprintButton.removeEventListener("touchstart", handleSprintStart);
     sprintButton.removeEventListener("touchend", handleSprintEnd);
     sprintButton.removeEventListener("touchcancel", handleSprintEnd);
+
+    sniffButton.removeEventListener("touchstart", handleSniff);
+    sniffButton.removeEventListener("click", handleSniff);
 
     window.removeEventListener("touchstart", handleLookTouchStart);
     window.removeEventListener("touchmove", handleLookTouchMove);

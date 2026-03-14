@@ -31,9 +31,22 @@
             <p class="meta-value" id="bestTime">--:--.--</p>
           </div>
         </div>
+        <div class="status-row status-row-double">
+          <div class="status-chunk status-chunk-wide">
+            <p class="meta-label">Sniff hint</p>
+            <p class="meta-value meta-value-sniff" id="sniffHint">Press Space or tap Sniff once Ray is loose.</p>
+          </div>
+          <div class="status-chunk">
+            <p class="meta-label">Sniff cooldown</p>
+            <div class="cooldown-track" aria-hidden="true">
+              <div class="cooldown-fill" id="sniffCooldownFill"></div>
+            </div>
+            <p class="cooldown-text" id="sniffCooldownText">Ready</p>
+          </div>
+        </div>
         <div class="status-row status-row-single">
           <div class="status-chunk status-chunk-wide">
-            <p class="meta-label">Sock sense</p>
+            <p class="meta-label">Laundry bulletin</p>
             <p class="flavor-text" id="flavorText">Ray's sock radar is on warm-up duty.</p>
           </div>
         </div>
@@ -41,6 +54,7 @@
       <div class="controls-card">
         <p>Move Ray: <span>WASD / Arrow Keys</span></p>
         <p>Sprint: <span>Shift</span></p>
+        <p>Sniff: <span>Space / Sniff button</span></p>
         <p>Look: <span>Mouse / Touch drag</span></p>
       </div>
     </div>
@@ -51,8 +65,8 @@
         <h2 id="overlayTitle">Ray and the Missing Sock</h2>
         <p id="overlayBody">
           Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos.
-          Track down the missing sock, grab it, and parade it back to her human like
-          the neighborhood legend she is.
+          Track down the missing socks, tap sniff when you need a lead, grab each one,
+          and parade it back to her human like the neighborhood legend she is.
         </p>
         <div class="overlay-summary hidden" id="overlaySummary">
           <div class="overlay-summary-grid">
@@ -76,7 +90,10 @@
         <div class="joystick-ring"></div>
         <div class="joystick-knob" id="moveKnob"></div>
       </div>
-      <button class="sprint-button" id="sprintButton" type="button">Sprint</button>
+      <div class="mobile-actions">
+        <button class="sniff-button" id="sniffButton" type="button">Sniff</button>
+        <button class="sprint-button" id="sprintButton" type="button">Sprint</button>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

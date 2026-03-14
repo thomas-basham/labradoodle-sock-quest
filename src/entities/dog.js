@@ -32,21 +32,32 @@ function getMoveIntent(inputState) {
 
 function animateDog(dog, dogState, delta) {
   const moving = dogState.speed > DOG_CONFIG.activeSpeedThreshold;
+  const sniffRatio = clamp(dogState.sniffTimer / DOG_CONFIG.sniffAnimationDuration, 0, 1);
+  const sniffPulse = sniffRatio > 0 ? Math.sin(dogState.sniffAnimationTime * 22) * sniffRatio : 0;
+  const sniffLift = sniffRatio > 0 ? Math.abs(Math.sin(dogState.sniffAnimationTime * 11)) * 0.04 : 0;
   dogState.animationTime += delta * (moving ? DOG_CONFIG.moveAnimationSpeed : DOG_CONFIG.idleAnimationSpeed);
 
   const bounce = moving
     ? Math.abs(Math.sin(dogState.animationTime * 2)) * DOG_CONFIG.bounceHeight
     : Math.sin(dogState.animationTime * 1.15) * 0.012 +
       Math.abs(Math.sin(dogState.animationTime * 2.2)) * DOG_CONFIG.idleBounceHeight;
-  dog.position.y = bounce;
+  dog.position.y = bounce + sniffLift * 0.45;
 
-  dog.userData.head.rotation.x = moving ? 0 : Math.sin(dogState.animationTime * 2.1) * 0.06;
+  dog.userData.head.position.copy(dog.userData.baseHeadPosition);
+  dog.userData.head.position.x += sniffRatio * 0.08;
+  dog.userData.head.position.y += sniffLift * 0.5;
+  dog.userData.nose.position.copy(dog.userData.baseNosePosition);
+  dog.userData.nose.position.x += sniffRatio * 0.1;
+  dog.userData.nose.position.y += sniffLift * 0.3;
+
+  dog.userData.head.rotation.x =
+    (moving ? 0 : Math.sin(dogState.animationTime * 2.1) * 0.06) - sniffRatio * 0.18 + sniffPulse * 0.08;
   dog.userData.head.rotation.z = moving
     ? Math.sin(dogState.animationTime * 2) * 0.04
-    : Math.sin(dogState.animationTime * 0.85) * 0.14;
+    : Math.sin(dogState.animationTime * 0.85) * 0.14 + sniffPulse * 0.04;
   dog.userData.tail.rotation.y = moving
     ? Math.sin(dogState.animationTime * 2.8) * 0.45
-    : Math.sin(dogState.animationTime * 3.8) * 0.7;
+    : Math.sin(dogState.animationTime * 3.8) * 0.7 + sniffRatio * 0.08;
   dog.userData.leftEar.rotation.x = moving
     ? Math.sin(dogState.animationTime * 1.5) * 0.08
     : 0.03 + Math.sin(dogState.animationTime * 1.4) * 0.04;
@@ -185,7 +196,10 @@ export function createDog(scene) {
   dog.position.set(...DOG_CONFIG.spawn);
   dog.rotation.y = Math.PI;
   dog.userData = {
+    baseHeadPosition: head.position.clone(),
+    baseNosePosition: nose.position.clone(),
     head,
+    nose,
     tail,
     leftEar,
     rightEar,
@@ -200,6 +214,8 @@ export function createDog(scene) {
 export function resetDog(dog, dogState) {
   dog.position.set(...DOG_CONFIG.spawn);
   dog.rotation.y = Math.PI;
+  dog.userData.head.position.copy(dog.userData.baseHeadPosition);
+  dog.userData.nose.position.copy(dog.userData.baseNosePosition);
 
   dogState.position.copy(dog.position);
   dogState.yaw = dog.rotation.y;
@@ -207,9 +223,21 @@ export function resetDog(dog, dogState) {
   dogState.velocity.set(0, 0, 0);
   dogState.hasSock = false;
   dogState.animationTime = 0;
+  dogState.sniffTimer = 0;
+  dogState.sniffAnimationTime = 0;
+}
+
+export function triggerDogSniff(dogState) {
+  dogState.sniffTimer = DOG_CONFIG.sniffAnimationDuration;
+  dogState.sniffAnimationTime = 0;
 }
 
 export function updateDog({ dog, dogState, inputState, pointerState, worldState, delta }) {
+  if (dogState.sniffTimer > 0) {
+    dogState.sniffTimer = Math.max(0, dogState.sniffTimer - delta);
+    dogState.sniffAnimationTime += delta;
+  }
+
   if (!worldState.gameStarted) {
     dogState.speed = 0;
     animateDog(dog, dogState, delta);
