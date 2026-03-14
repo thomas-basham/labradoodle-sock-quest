@@ -638,6 +638,15 @@ h2 {
   color: rgba(52, 36, 20, 0.82);
 }
 
+.level-preview-note {
+  margin-top: 10px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+}
+
 .overlay-actions {
   display: flex;
   flex-wrap: wrap;

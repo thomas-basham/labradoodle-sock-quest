@@ -21,6 +21,7 @@ function renderStartScreen(levels) {
               <p class="level-preview-index">Yard ${level.number}</p>
               <p class="level-preview-name">${level.name}</p>
               <p class="level-preview-text">${level.description}</p>
+              ${level.hasVacuum ? '<p class="level-preview-note">Robot vacuum patrol active</p>' : ""}
             </section>
           `,
         )
@@ -84,7 +85,7 @@ function renderControlsScreen() {
         <li>Only one sock is active at a time. Follow the marker to the current target.</li>
         <li>After pickup, the marker flips to Becca so you can return the sock to the hamper.</li>
         <li>Complete Sunny Backyard, then Evening Backyard, then Chaotic Laundry Day.</li>
-        <li>Mud slows Ray, toys bounce her, sprinklers mist the camera, and flower beds block movement.</li>
+        <li>Mud slows Ray, toys bounce her, sprinklers mist the camera, flower beds block movement, and later yards may unleash a robot vacuum.</li>
       </ul>
     </section>
     <div class="overlay-actions">
@@ -143,6 +144,20 @@ function renderSettingsScreen(settings, audioSupported) {
             ${settings.invertY ? "checked" : ""}
           />
           <span>${settings.invertY ? "On" : "Off"}</span>
+        </span>
+      </label>
+      <label class="setting-row">
+        <span class="setting-copy">
+          <span class="setting-label">Robot vacuum</span>
+          <span class="setting-detail">Enables the patrol vacuum in Evening Backyard and Chaotic Laundry Day.</span>
+        </span>
+        <span class="toggle-control">
+          <input
+            type="checkbox"
+            data-setting="vacuumEnabled"
+            ${settings.vacuumEnabled ? "checked" : ""}
+          />
+          <span>${settings.vacuumEnabled ? "Enabled" : "Disabled"}</span>
         </span>
       </label>
       <label class="setting-row">
@@ -343,6 +358,7 @@ export function createOverlay() {
     const sensitivityInput = panel.querySelector('[data-setting="mouseSensitivity"]');
     const sensitivityValue = panel.querySelector("#overlaySensitivityValue");
     const invertYInput = panel.querySelector('[data-setting="invertY"]');
+    const vacuumInput = panel.querySelector('[data-setting="vacuumEnabled"]');
     const qualityInput = panel.querySelector('[data-setting="qualityPreset"]');
 
     if (soundInput instanceof HTMLInputElement) {
@@ -371,6 +387,14 @@ export function createOverlay() {
       const label = invertYInput.parentElement?.querySelector("span:last-child");
       if (label) {
         label.textContent = currentSettings.invertY ? "On" : "Off";
+      }
+    }
+
+    if (vacuumInput instanceof HTMLInputElement) {
+      vacuumInput.checked = currentSettings.vacuumEnabled;
+      const label = vacuumInput.parentElement?.querySelector("span:last-child");
+      if (label) {
+        label.textContent = currentSettings.vacuumEnabled ? "Enabled" : "Disabled";
       }
     }
 
@@ -452,6 +476,15 @@ export function createOverlay() {
       const label = target.parentElement?.querySelector("span:last-child");
       if (label) {
         label.textContent = target.checked ? "On" : "Off";
+      }
+      return;
+    }
+
+    if (settingName === "vacuumEnabled" && target instanceof HTMLInputElement) {
+      settingsChangeHandler({ vacuumEnabled: target.checked });
+      const label = target.parentElement?.querySelector("span:last-child");
+      if (label) {
+        label.textContent = target.checked ? "Enabled" : "Disabled";
       }
       return;
     }
