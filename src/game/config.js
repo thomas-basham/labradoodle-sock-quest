@@ -7,6 +7,7 @@ export const GAME_STATES = {
 
 export const WORLD_SIZE = 28;
 export const DOG_NAME = "Ray";
+export const OWNER_NAME = "Becca";
 
 export const PALETTE = {
   grass: 0x8dbf57,
@@ -38,7 +39,7 @@ export const PALETTE = {
 
 export const OBJECTIVES = {
   intro: "Ray is on backyard patrol and ready to sniff out a runaway sock.",
-  complete: "Round complete. Ray returned every last sock in the yard.",
+  complete: "Round complete. Ray returned every last sock to Becca's side of the porch.",
 };
 
 export function getSearchingObjective(returnedCount, totalSocks) {
@@ -48,18 +49,18 @@ export function getSearchingObjective(returnedCount, totalSocks) {
 
 export function getReturningObjective(returnedCount, totalSocks) {
   const currentSock = Math.min(returnedCount + 1, totalSocks);
-  return `Sock ${currentSock} of ${totalSocks} secured. Bring it back to Ray's human by the porch.`;
+  return `Sock ${currentSock} of ${totalSocks} secured. Bring it back to Becca by the porch.`;
 }
 
 export const OVERLAY_COPY = {
   intro: {
     title: "Ray and the Missing Sock",
-    body: "Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos. Track down the missing socks, tap sniff when you need a lead, grab each one, and parade it back to her human like the neighborhood legend she is.",
+    body: "Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos. Track down the missing socks, tap sniff when you need a lead, grab each one, and parade it back to Becca like the neighborhood legend she is.",
     buttonLabel: "Unleash Ray",
   },
   complete: {
     title: "Round complete",
-    body: "Ray rounded up every missing sock in the yard and is awaiting the official post-laundry parade.",
+    body: "Ray rounded up every missing sock in the yard, and Becca is fully convinced she lives with a laundry prodigy.",
     buttonLabel: "Play again",
   },
 };
@@ -75,6 +76,22 @@ export const FLAVOR_MESSAGES = [
   "The scent profile is 82% cotton, 18% mischief.",
   "Ray is operating at maximum sniffacity.",
   "Alert: lone sock energy is rising.",
+];
+
+export const OWNER_REACTION_LINES = [
+  "Good dog, Ray!",
+  "You found another one!",
+  "Laundry thief redeemed!",
+  "Sock detective on duty!",
+  "Becca is extremely impressed.",
+  "That sock never stood a chance.",
+];
+
+export const OWNER_CELEBRATION_LINES = [
+  "Every sock rescued!",
+  "Becca declares this a laundry triumph!",
+  "Ray wins the golden hamper!",
+  "Five socks, zero mysteries left!",
 ];
 
 export const SCENE_CONFIG = {
@@ -99,6 +116,17 @@ export const CAMERA_CONFIG = {
   mousePitchSpeed: 0.0022,
   touchYawSpeed: 0.004,
   touchPitchSpeed: 0.003,
+};
+
+export const OWNER_CONFIG = {
+  position: [0, 0.5, 16.6],
+  idleBobHeight: 0.06,
+  idleBobSpeed: 1.2,
+  idleSwayAmount: 0.04,
+  happyReactionDuration: 1.15,
+  celebrationDuration: 1.9,
+  complimentDuration: 1.75,
+  complimentHeight: 5.8,
 };
 
 export const MOVEMENT_CONFIG = {

@@ -2,7 +2,13 @@ import * as THREE from "three";
 
 import { createFollowCamera, resizeFollowCamera, updateFollowCamera } from "../camera/followCamera";
 import { createDog, nudgeDog, resetDog, triggerDogSniff, updateDog } from "../entities/dog";
-import { createOwner } from "../entities/owner";
+import {
+  createOwner,
+  resetOwner,
+  triggerOwnerCelebrate,
+  triggerOwnerSockReaction,
+  updateOwner,
+} from "../entities/owner";
 import { SockManager } from "../entities/sockManager";
 import { registerKeyboardControls } from "../input/keyboard";
 import { registerTouchControls } from "../input/touch";
@@ -20,6 +26,8 @@ import {
   GAME_STATES,
   HAZARD_CONFIG,
   OBJECTIVES,
+  OWNER_CELEBRATION_LINES,
+  OWNER_REACTION_LINES,
   ROUND_CONFIG,
   SCENE_CONFIG,
   SNIFF_CONFIG,
@@ -254,6 +262,7 @@ export class Game {
 
   startRound() {
     resetDog(this.dog, this.dogState);
+    resetOwner(this.owner);
     this.sockManager.resetRound();
     this.hazardSystem.resetRound({
       reservedPositions: [
@@ -283,6 +292,7 @@ export class Game {
     const previousBest = this.worldState.bestTimeMs;
     const isNewBest = previousBest === null || totalTime < previousBest;
 
+    triggerOwnerCelebrate(this.owner, randomItem(OWNER_CELEBRATION_LINES));
     this.worldState.state = GAME_STATES.complete;
     this.worldState.gameStarted = false;
     this.sniffCooldownEndsAt = 0;
@@ -363,6 +373,7 @@ export class Game {
         return;
       }
 
+      triggerOwnerSockReaction(this.owner, randomItem(OWNER_REACTION_LINES));
       this.worldState.state = GAME_STATES.searching;
       this.setObjective(
         getSearchingObjective(this.worldState.socksReturned, this.worldState.totalSocks),
@@ -415,6 +426,7 @@ export class Game {
         gameStarted: this.worldState.gameStarted,
       }),
     );
+    updateOwner(this.owner, delta, elapsed);
 
     this.updateRoundTimer();
 

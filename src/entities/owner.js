@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { PALETTE } from "../game/config";
+import { OWNER_CONFIG, OWNER_NAME, PALETTE } from "../game/config";
 
 function makeStandardMaterial(color, roughness = 0.75) {
   return new THREE.MeshStandardMaterial({
@@ -10,8 +10,89 @@ function makeStandardMaterial(color, roughness = 0.75) {
   });
 }
 
+function createComplimentSprite() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 640;
+  canvas.height = 192;
+  const context = canvas.getContext("2d");
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+  });
+  const sprite = new THREE.Sprite(material);
+  sprite.visible = false;
+  sprite.scale.set(5.8, 1.8, 1);
+
+  return {
+    canvas,
+    context,
+    texture,
+    sprite,
+  };
+}
+
+function drawRoundedPanel(context, width, height, radius) {
+  context.beginPath();
+  context.moveTo(radius, 12);
+  context.lineTo(width - radius, 12);
+  context.quadraticCurveTo(width, 12, width, 12 + radius);
+  context.lineTo(width, height - radius);
+  context.quadraticCurveTo(width, height, width - radius, height);
+  context.lineTo(radius, height);
+  context.quadraticCurveTo(0, height, 0, height - radius);
+  context.lineTo(0, 12 + radius);
+  context.quadraticCurveTo(0, 12, radius, 12);
+  context.closePath();
+}
+
+function drawComplimentText(textData, text) {
+  const { canvas, context, texture } = textData;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawRoundedPanel(context, canvas.width, canvas.height - 12, 42);
+  context.fillStyle = "rgba(255, 249, 232, 0.92)";
+  context.fill();
+  context.lineWidth = 8;
+  context.strokeStyle = "rgba(141, 75, 28, 0.32)";
+  context.stroke();
+
+  context.fillStyle = "#5f3818";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  let fontSize = 54;
+  context.font = `800 ${fontSize}px 'Trebuchet MS', sans-serif`;
+
+  while (fontSize > 34 && context.measureText(text).width > canvas.width - 80) {
+    fontSize -= 2;
+    context.font = `800 ${fontSize}px 'Trebuchet MS', sans-serif`;
+  }
+
+  context.fillText(text, canvas.width / 2, canvas.height / 2 + 4, canvas.width - 52);
+
+  texture.needsUpdate = true;
+}
+
+function showCompliment(owner, text, scaleMultiplier, duration) {
+  const textData = owner.userData.complimentText;
+  drawComplimentText(textData, text);
+  textData.sprite.visible = true;
+  textData.sprite.material.opacity = 1;
+  textData.baseScale = 5.8 * scaleMultiplier;
+  textData.sprite.scale.set(textData.baseScale, 1.8 * scaleMultiplier, 1);
+  owner.userData.complimentTimer = duration;
+  owner.userData.complimentDuration = duration;
+}
+
 export function createOwner(scene) {
   const owner = new THREE.Group();
+  const bodyRig = new THREE.Group();
+  owner.add(bodyRig);
+
   const skin = makeStandardMaterial(0xf1caab, 0.75);
   const shirt = makeStandardMaterial(PALETTE.ownerShirt, 0.82);
   const jeans = makeStandardMaterial(PALETTE.ownerJeans, 0.9);
@@ -21,46 +102,161 @@ export function createOwner(scene) {
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.65, 1.6, 6, 12), shirt);
   torso.position.y = 2.8;
   torso.castShadow = true;
-  owner.add(torso);
+  bodyRig.add(torso);
 
   const hips = new THREE.Mesh(new THREE.SphereGeometry(0.72, 12, 12), shirt);
   hips.position.y = 1.9;
   hips.castShadow = true;
-  owner.add(hips);
+  bodyRig.add(hips);
 
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 16), skin);
   head.position.set(0, 4.3, 0);
   head.castShadow = true;
-  owner.add(head);
+  bodyRig.add(head);
 
   const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.64, 16, 16), hair);
   hairCap.position.set(0, 4.48, -0.04);
   hairCap.scale.set(1.03, 0.8, 1.04);
   hairCap.castShadow = true;
-  owner.add(hairCap);
+  bodyRig.add(hairCap);
 
-  for (const x of [-0.42, 0.42]) {
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 1.15, 4, 10), shirt);
-    arm.position.set(x, 2.95, 0);
-    arm.rotation.z = x > 0 ? -0.15 : 0.15;
-    arm.castShadow = true;
-    owner.add(arm);
-  }
+  const leftArmPivot = new THREE.Group();
+  leftArmPivot.position.set(-0.72, 3.35, 0);
+  const rightArmPivot = new THREE.Group();
+  rightArmPivot.position.set(0.72, 3.35, 0);
+
+  const leftArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 1.15, 4, 10), shirt);
+  leftArm.position.set(0, -0.62, 0);
+  leftArm.castShadow = true;
+
+  const rightArm = leftArm.clone();
+  rightArm.castShadow = true;
+
+  leftArmPivot.add(leftArm);
+  rightArmPivot.add(rightArm);
+  bodyRig.add(leftArmPivot, rightArmPivot);
 
   for (const x of [-0.28, 0.28]) {
     const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 1.4, 4, 10), jeans);
     leg.position.set(x, 1.0, 0);
     leg.castShadow = true;
-    owner.add(leg);
+    bodyRig.add(leg);
 
     const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.22, 0.8), shoes);
     shoe.position.set(x, 0.08, 0.15);
     shoe.castShadow = true;
-    owner.add(shoe);
+    bodyRig.add(shoe);
   }
 
-  owner.position.set(0, 0.5, 16.6);
+  const complimentText = createComplimentSprite();
+  complimentText.sprite.position.set(0, OWNER_CONFIG.complimentHeight, 0);
+  owner.add(complimentText.sprite);
+
+  owner.position.set(...OWNER_CONFIG.position);
   owner.rotation.y = Math.PI;
+  owner.userData = {
+    name: OWNER_NAME,
+    bodyRig,
+    head,
+    hairCap,
+    leftArmPivot,
+    rightArmPivot,
+    baseLeftArmRotation: 0.24,
+    baseRightArmRotation: -0.24,
+    complimentText,
+    complimentTimer: 0,
+    complimentDuration: OWNER_CONFIG.complimentDuration,
+    celebrationTimer: 0,
+    happyTimer: 0,
+  };
+
+  resetOwner(owner);
   scene.add(owner);
   return owner;
+}
+
+export function resetOwner(owner) {
+  owner.userData.bodyRig.position.set(0, 0, 0);
+  owner.userData.bodyRig.rotation.set(0, 0, 0);
+  owner.userData.head.rotation.set(0, 0, 0);
+  owner.userData.hairCap.rotation.set(0, 0, 0);
+  owner.userData.leftArmPivot.rotation.set(0, 0, owner.userData.baseLeftArmRotation);
+  owner.userData.rightArmPivot.rotation.set(0, 0, owner.userData.baseRightArmRotation);
+  owner.userData.complimentText.sprite.visible = false;
+  owner.userData.complimentText.sprite.material.opacity = 0;
+  owner.userData.complimentTimer = 0;
+  owner.userData.happyTimer = 0;
+  owner.userData.celebrationTimer = 0;
+}
+
+export function triggerOwnerSockReaction(owner, text) {
+  owner.userData.happyTimer = OWNER_CONFIG.happyReactionDuration;
+  owner.userData.celebrationTimer = 0;
+  showCompliment(owner, text, 1, OWNER_CONFIG.complimentDuration);
+}
+
+export function triggerOwnerCelebrate(owner, text) {
+  owner.userData.celebrationTimer = OWNER_CONFIG.celebrationDuration;
+  owner.userData.happyTimer = 0;
+  showCompliment(owner, text, 1.1, OWNER_CONFIG.complimentDuration + 0.35);
+}
+
+export function updateOwner(owner, delta, elapsed) {
+  const data = owner.userData;
+  const sprite = data.complimentText.sprite;
+
+  data.happyTimer = Math.max(0, data.happyTimer - delta);
+  data.celebrationTimer = Math.max(0, data.celebrationTimer - delta);
+  data.complimentTimer = Math.max(0, data.complimentTimer - delta);
+
+  const idleBob = Math.sin(elapsed * OWNER_CONFIG.idleBobSpeed) * OWNER_CONFIG.idleBobHeight;
+  let bodyBob = idleBob;
+  let bodyYaw = Math.sin(elapsed * OWNER_CONFIG.idleBobSpeed * 0.8) * OWNER_CONFIG.idleSwayAmount;
+  let headTilt = Math.sin(elapsed * 1.05) * 0.05;
+  let headNod = Math.sin(elapsed * 1.45) * 0.03;
+  let leftArmRotation = data.baseLeftArmRotation + Math.sin(elapsed * 1.3) * 0.05;
+  let rightArmRotation = data.baseRightArmRotation - Math.sin(elapsed * 1.3) * 0.05;
+
+  if (data.celebrationTimer > 0) {
+    bodyBob += Math.abs(Math.sin(elapsed * 7.4)) * 0.18;
+    bodyYaw = Math.sin(elapsed * 6.2) * 0.14;
+    headTilt = Math.sin(elapsed * 5.7) * 0.12;
+    headNod = -0.12 + Math.abs(Math.sin(elapsed * 7.8)) * 0.08;
+    leftArmRotation = data.baseLeftArmRotation + 1.08 + Math.sin(elapsed * 11) * 0.2;
+    rightArmRotation = data.baseRightArmRotation - 1.08 - Math.sin(elapsed * 11) * 0.2;
+  } else if (data.happyTimer > 0) {
+    bodyBob += Math.abs(Math.sin(elapsed * 5.5)) * 0.1;
+    bodyYaw = Math.sin(elapsed * 4.4) * 0.08;
+    headTilt = Math.sin(elapsed * 3.8) * 0.08;
+    headNod = -0.06 + Math.abs(Math.sin(elapsed * 6.1)) * 0.04;
+    leftArmRotation = data.baseLeftArmRotation + 0.62 + Math.sin(elapsed * 8.4) * 0.14;
+    rightArmRotation = data.baseRightArmRotation - 0.62 - Math.sin(elapsed * 8.4) * 0.14;
+  }
+
+  data.bodyRig.position.y = bodyBob;
+  data.bodyRig.rotation.y = bodyYaw;
+  data.head.rotation.x = headNod;
+  data.head.rotation.z = headTilt;
+  data.hairCap.rotation.z = headTilt * 0.65;
+  data.leftArmPivot.rotation.z = leftArmRotation;
+  data.rightArmPivot.rotation.z = rightArmRotation;
+
+  if (data.complimentTimer > 0) {
+    const progress = 1 - data.complimentTimer / data.complimentDuration;
+    const fade =
+      progress > 0.74 ? Math.max(0, 1 - (progress - 0.74) / 0.26) : 1;
+
+    sprite.visible = true;
+    sprite.material.opacity = fade;
+    sprite.position.y = OWNER_CONFIG.complimentHeight + progress * 0.5;
+    sprite.scale.set(
+      data.complimentText.baseScale * (1 + progress * 0.04),
+      1.8 * (data.complimentText.baseScale / 5.8) * (1 + progress * 0.04),
+      1,
+    );
+  } else {
+    sprite.visible = false;
+    sprite.material.opacity = 0;
+    sprite.position.y = OWNER_CONFIG.complimentHeight;
+  }
 }
