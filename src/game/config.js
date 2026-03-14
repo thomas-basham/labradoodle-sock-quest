@@ -24,6 +24,16 @@ export const PALETTE = {
   path: 0xdab575,
   scent: 0xffd88d,
   scentGlow: 0xfff2bf,
+  mud: 0x755137,
+  mudHighlight: 0x916240,
+  toyRed: 0xe86c58,
+  toyBlue: 0x59a6e9,
+  toyYellow: 0xf1be52,
+  sprinkler: 0x5fb8eb,
+  sprinklerGlow: 0xb8edff,
+  gardenSoil: 0x6f4a2e,
+  gardenBorder: 0xb68454,
+  gardenLeaf: 0x5d8c44,
 };
 
 export const OBJECTIVES = {
@@ -137,6 +147,49 @@ export const JOYSTICK_CONFIG = {
 export const ROUND_CONFIG = {
   socksPerRound: 5,
   bestTimeStorageKey: "ray-sock-quest-best-time-ms",
+};
+
+export const HAZARD_CONFIG = {
+  defaultStatus: {
+    badge: "Clear",
+    title: "Backyard clear",
+    detail: "Mud, squeaks, and petunias are standing by.",
+  },
+  mud: {
+    count: 2,
+    radius: 2.4,
+    slowMultiplier: 0.62,
+    splashIntervalMs: 280,
+    badge: "Speed -38%",
+    title: "Mud patrol",
+    detail: "Paws full of pudding. Ray is slogging a bit.",
+  },
+  toyPile: {
+    count: 1,
+    radius: 1.7,
+    nudgeStrength: 3.8,
+    triggerCooldownMs: 1600,
+    badge: "Boing",
+    title: "Squeak ambush",
+    detail: "Toy pile bounce. Dignity mostly intact.",
+  },
+  sprinkler: {
+    count: 1,
+    radius: 3.4,
+    mistIntervalMs: 120,
+    overlayOpacity: 0.42,
+    badge: "Misty",
+    title: "Sprinkler zone",
+    detail: "Visibility is a tiny bit soggy in here.",
+  },
+  gardenBed: {
+    count: 2,
+    collisionPadding: 0.2,
+    badge: "Blocked",
+    title: "Garden border",
+    detail: "No trampling the petunias, Ray.",
+    calloutCooldownMs: 1200,
+  },
 };
 
 export const SNIFF_CONFIG = {

@@ -217,6 +217,38 @@ h2 {
   color: rgba(52, 36, 20, 0.86);
 }
 
+.hazard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.hazard-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(210, 110, 40, 0.14);
+  color: var(--accent-dark);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hazard-title {
+  margin-top: 6px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.hazard-text {
+  margin-top: 4px;
+  font-size: 0.92rem;
+  line-height: 1.42;
+  color: rgba(52, 36, 20, 0.82);
+}
+
 .controls-card {
   grid-column: 2;
 }
@@ -242,6 +274,20 @@ h2 {
   box-shadow: 0 0 0 4px rgba(210, 110, 40, 0.1);
   pointer-events: none;
   z-index: 2;
+}
+
+.sprinkler-overlay {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 16% 22%, rgba(184, 237, 255, 0.34), transparent 14%),
+    radial-gradient(circle at 78% 18%, rgba(184, 237, 255, 0.28), transparent 12%),
+    radial-gradient(circle at 62% 68%, rgba(184, 237, 255, 0.24), transparent 14%),
+    linear-gradient(180deg, rgba(129, 204, 244, 0.12), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(2px);
+  z-index: 1;
 }
 
 .overlay {

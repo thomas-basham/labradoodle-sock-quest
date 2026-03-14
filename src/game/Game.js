@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { createFollowCamera, resizeFollowCamera, updateFollowCamera } from "../camera/followCamera";
-import { createDog, resetDog, triggerDogSniff, updateDog } from "../entities/dog";
+import { createDog, nudgeDog, resetDog, triggerDogSniff, updateDog } from "../entities/dog";
 import { createOwner } from "../entities/owner";
 import { SockManager } from "../entities/sockManager";
 import { registerKeyboardControls } from "../input/keyboard";
@@ -11,12 +11,14 @@ import { createOverlay } from "../ui/overlay";
 import { randomItem } from "../utils/math";
 import { formatElapsedTime, loadStoredBestTime, saveStoredBestTime } from "../utils/time";
 import { buildEnvironment } from "../world/environment";
+import { HazardSystem } from "../world/hazardSystem";
 import {
   DEFAULT_FLAVOR_MESSAGE,
   DOG_CONFIG,
   DOG_NAME,
   FLAVOR_MESSAGES,
   GAME_STATES,
+  HAZARD_CONFIG,
   OBJECTIVES,
   ROUND_CONFIG,
   SCENE_CONFIG,
@@ -58,6 +60,7 @@ export class Game {
     this.renderer = createRenderer(mount);
     this.clock = new THREE.Clock();
     this.tempVector = new THREE.Vector3();
+    this.previousDogPosition = new THREE.Vector3();
 
     this.worldState = createWorldState();
     this.pointerState = createPointerState();
@@ -74,6 +77,9 @@ export class Game {
       dog: this.dog,
       owner: this.owner,
     });
+    this.hazardSystem = new HazardSystem({
+      scene: this.scene,
+    });
 
     this.hud = createHud();
     this.overlay = createOverlay();
@@ -88,6 +94,8 @@ export class Game {
     this.hud.setSniffHint(this.worldState.sniffHint);
     this.hud.setSniffCooldown(0, SNIFF_CONFIG.cooldownMs);
     this.hud.setFlavor(DEFAULT_FLAVOR_MESSAGE);
+    this.hud.setHazardStatus(HAZARD_CONFIG.defaultStatus);
+    this.hud.setSprinklerOverlay(0);
     this.overlay.showIntro();
     this.roundStartTime = null;
 
@@ -171,6 +179,31 @@ export class Game {
     this.hud.setFlavor(text);
   }
 
+  setHazardStatus(status) {
+    this.worldState.hazardBadge = status.badge;
+    this.worldState.hazardTitle = status.title;
+    this.worldState.hazardDetail = status.detail;
+    this.hud.setHazardStatus(status);
+  }
+
+  setSprinklerOverlay(intensity) {
+    this.worldState.sprinklerOverlay = intensity;
+    this.hud.setSprinklerOverlay(intensity);
+  }
+
+  applyHazardFeedback(feedback) {
+    this.setHazardStatus({
+      badge: feedback.badge,
+      title: feedback.title,
+      detail: feedback.detail,
+    });
+    this.setSprinklerOverlay(feedback.sprinklerOverlay);
+
+    if (feedback.impulse) {
+      nudgeDog(this.dogState, feedback.impulse);
+    }
+  }
+
   getSniffCooldownRemaining(now = performance.now()) {
     return Math.max(0, this.sniffCooldownEndsAt - now);
   }
@@ -222,6 +255,13 @@ export class Game {
   startRound() {
     resetDog(this.dog, this.dogState);
     this.sockManager.resetRound();
+    this.hazardSystem.resetRound({
+      reservedPositions: [
+        ...this.sockManager.getRoundSockPositions(),
+        this.owner.position.clone(),
+        new THREE.Vector3(...DOG_CONFIG.spawn),
+      ],
+    });
     this.worldState.gameStarted = true;
     this.worldState.state = GAME_STATES.searching;
     this.dogState.hasSock = false;
@@ -233,6 +273,8 @@ export class Game {
     this.setObjective(getSearchingObjective(0, this.worldState.totalSocks));
     this.setSniffHint(SNIFF_CONFIG.defaultHint);
     this.setFlavor(this.getRandomFlavor());
+    this.setHazardStatus(HAZARD_CONFIG.defaultStatus);
+    this.setSprinklerOverlay(0);
     this.updateSniffUi(this.roundStartTime);
   }
 
@@ -341,6 +383,11 @@ export class Game {
   render() {
     const delta = Math.min(this.clock.getDelta(), 0.05);
     const elapsed = this.clock.elapsedTime;
+    const now = performance.now();
+    const speedMultiplier = this.worldState.gameStarted
+      ? this.hazardSystem.getSpeedMultiplier(this.dogState.position)
+      : 1;
+    this.previousDogPosition.copy(this.dog.position);
 
     updateDog({
       dog: this.dog,
@@ -349,7 +396,25 @@ export class Game {
       pointerState: this.pointerState,
       worldState: this.worldState,
       delta,
+      speedMultiplier,
+      resolveMovement: (currentPosition, proposedPosition) =>
+        this.hazardSystem.resolveMovement({
+          currentPosition,
+          proposedPosition,
+          now,
+        }),
     });
+
+    this.applyHazardFeedback(
+      this.hazardSystem.update({
+        dogPosition: this.dog.position,
+        previousDogPosition: this.previousDogPosition,
+        delta,
+        elapsed,
+        now,
+        gameStarted: this.worldState.gameStarted,
+      }),
+    );
 
     this.updateRoundTimer();
 

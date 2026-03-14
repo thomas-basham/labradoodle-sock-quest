@@ -6,6 +6,7 @@ import { clamp, damp } from "../utils/math";
 const upVector = new THREE.Vector3(0, 1, 0);
 const moveIntent = new THREE.Vector3();
 const facingDirection = new THREE.Vector3();
+const proposedPosition = new THREE.Vector3();
 
 function makeStandardMaterial(color, roughness = 0.75) {
   return new THREE.MeshStandardMaterial({
@@ -221,6 +222,7 @@ export function resetDog(dog, dogState) {
   dogState.yaw = dog.rotation.y;
   dogState.speed = 0;
   dogState.velocity.set(0, 0, 0);
+  dogState.externalVelocity.set(0, 0, 0);
   dogState.hasSock = false;
   dogState.animationTime = 0;
   dogState.sniffTimer = 0;
@@ -232,7 +234,20 @@ export function triggerDogSniff(dogState) {
   dogState.sniffAnimationTime = 0;
 }
 
-export function updateDog({ dog, dogState, inputState, pointerState, worldState, delta }) {
+export function nudgeDog(dogState, impulse) {
+  dogState.externalVelocity.add(impulse);
+}
+
+export function updateDog({
+  dog,
+  dogState,
+  inputState,
+  pointerState,
+  worldState,
+  delta,
+  speedMultiplier = 1,
+  resolveMovement = (_currentPosition, nextPosition) => nextPosition,
+}) {
   if (dogState.sniffTimer > 0) {
     dogState.sniffTimer = Math.max(0, dogState.sniffTimer - delta);
     dogState.sniffAnimationTime += delta;
@@ -259,11 +274,22 @@ export function updateDog({ dog, dogState, inputState, pointerState, worldState,
         : MOVEMENT_CONFIG.walkSpeed
       : 0;
 
-  dogState.speed = damp(dogState.speed, speedTarget, MOVEMENT_CONFIG.speedDamping, delta);
+  dogState.speed = damp(
+    dogState.speed,
+    speedTarget * speedMultiplier,
+    MOVEMENT_CONFIG.speedDamping,
+    delta,
+  );
 
   facingDirection.set(0, 0, -1).applyAxisAngle(upVector, dogState.yaw);
   dogState.velocity.copy(facingDirection).multiplyScalar(dogState.speed * delta);
-  dogState.position.add(dogState.velocity);
+  proposedPosition
+    .copy(dogState.position)
+    .add(dogState.velocity)
+    .addScaledVector(dogState.externalVelocity, delta);
+
+  dogState.externalVelocity.multiplyScalar(Math.exp(-8 * delta));
+  dogState.position.copy(resolveMovement(dogState.position, proposedPosition));
 
   dogState.position.x = clamp(
     dogState.position.x,

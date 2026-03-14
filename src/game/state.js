@@ -3,6 +3,7 @@ import * as THREE from "three";
 import {
   CAMERA_CONFIG,
   GAME_STATES,
+  HAZARD_CONFIG,
   OBJECTIVES,
   ROUND_CONFIG,
   SNIFF_CONFIG,
@@ -21,6 +22,10 @@ export function createWorldState() {
     bestTimeMs: null,
     flavorText: "",
     sniffHint: SNIFF_CONFIG.introHint,
+    hazardBadge: HAZARD_CONFIG.defaultStatus.badge,
+    hazardTitle: HAZARD_CONFIG.defaultStatus.title,
+    hazardDetail: HAZARD_CONFIG.defaultStatus.detail,
+    sprinklerOverlay: 0,
   };
 }
 
@@ -60,6 +65,7 @@ export function createDogState(dog) {
     yaw: dog.rotation.y,
     speed: 0,
     velocity: new THREE.Vector3(),
+    externalVelocity: new THREE.Vector3(),
     hasSock: false,
     animationTime: 0,
     sniffTimer: 0,

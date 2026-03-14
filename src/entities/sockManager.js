@@ -108,6 +108,12 @@ export class SockManager {
     return activeSock.getWorldPosition(target);
   }
 
+  getRoundSockPositions() {
+    return this.socks
+      .filter((sock) => sock.parent === this.scene)
+      .map((sock) => sock.getWorldPosition(new THREE.Vector3()));
+  }
+
   clearSniffEffects() {
     this.sniffTimer = 0;
 

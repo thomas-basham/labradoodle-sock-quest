@@ -8,6 +8,10 @@ export function createHud() {
   const sniffCooldownFill = document.getElementById("sniffCooldownFill");
   const sniffCooldownText = document.getElementById("sniffCooldownText");
   const flavorText = document.getElementById("flavorText");
+  const hazardBadge = document.getElementById("hazardBadge");
+  const hazardTitle = document.getElementById("hazardTitle");
+  const hazardText = document.getElementById("hazardText");
+  const sprinklerOverlay = document.getElementById("sprinklerOverlay");
 
   return {
     setName(text) {
@@ -42,6 +46,16 @@ export function createHud() {
 
     setFlavor(text) {
       flavorText.textContent = text;
+    },
+
+    setHazardStatus({ badge, title, detail }) {
+      hazardBadge.textContent = badge;
+      hazardTitle.textContent = title;
+      hazardText.textContent = detail;
+    },
+
+    setSprinklerOverlay(intensity) {
+      sprinklerOverlay.style.opacity = intensity.toFixed(3);
     },
   };
 }
