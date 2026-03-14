@@ -524,6 +524,7 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .title-wrap,
   .status-card,
   .controls-card {
     justify-self: start;
@@ -545,6 +546,15 @@ button:focus-visible {
   .controls-card,
   .overlay-card {
     border-radius: 18px;
+  }
+
+  .title-top {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  button.sound-toggle {
+    align-self: flex-start;
   }
 
   .status-row {
