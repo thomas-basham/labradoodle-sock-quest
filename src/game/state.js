@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { CAMERA_CONFIG, GAME_STATES, OBJECTIVES, WORLD_SIZE } from "./config";
+import { CAMERA_CONFIG, GAME_STATES, OBJECTIVES, ROUND_CONFIG, WORLD_SIZE } from "./config";
 
 export function createWorldState() {
   return {
@@ -8,7 +8,10 @@ export function createWorldState() {
     gameStarted: false,
     state: GAME_STATES.intro,
     objective: OBJECTIVES.intro,
-    socksCollected: 0,
+    socksReturned: 0,
+    totalSocks: ROUND_CONFIG.socksPerRound,
+    roundTimeMs: 0,
+    bestTimeMs: null,
     flavorText: "",
   };
 }

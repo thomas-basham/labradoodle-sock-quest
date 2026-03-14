@@ -1,7 +1,9 @@
 export function createHud() {
   const dogName = document.getElementById("dogName");
   const objectiveText = document.getElementById("objectiveText");
-  const sockCount = document.getElementById("sockCount");
+  const sockProgress = document.getElementById("sockProgress");
+  const roundTime = document.getElementById("roundTime");
+  const bestTime = document.getElementById("bestTime");
   const flavorText = document.getElementById("flavorText");
 
   return {
@@ -13,8 +15,16 @@ export function createHud() {
       objectiveText.textContent = text;
     },
 
-    setCollected(count) {
-      sockCount.textContent = String(count);
+    setProgress(returnedCount, totalSocks) {
+      sockProgress.textContent = `${returnedCount} / ${totalSocks}`;
+    },
+
+    setRoundTime(text) {
+      roundTime.textContent = text;
+    },
+
+    setBestTime(text) {
+      bestTime.textContent = text;
     },
 
     setFlavor(text) {

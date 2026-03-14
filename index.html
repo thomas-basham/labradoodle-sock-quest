@@ -17,11 +17,21 @@
         <p class="meta-value" id="dogName">Ray</p>
         <p id="objectiveLabel">Current mission</p>
         <p id="objectiveText">Ray is on backyard patrol and ready to sniff out a runaway sock.</p>
-        <div class="status-row">
+        <div class="status-row status-row-triple">
           <div class="status-chunk">
             <p class="meta-label">Socks this round</p>
-            <p class="meta-value" id="sockCount">0</p>
+            <p class="meta-value" id="sockProgress">0 / 5</p>
           </div>
+          <div class="status-chunk">
+            <p class="meta-label">Round time</p>
+            <p class="meta-value" id="roundTime">0:00.00</p>
+          </div>
+          <div class="status-chunk">
+            <p class="meta-label">Best time</p>
+            <p class="meta-value" id="bestTime">--:--.--</p>
+          </div>
+        </div>
+        <div class="status-row status-row-single">
           <div class="status-chunk status-chunk-wide">
             <p class="meta-label">Sock sense</p>
             <p class="flavor-text" id="flavorText">Ray's sock radar is on warm-up duty.</p>
@@ -44,6 +54,19 @@
           Track down the missing sock, grab it, and parade it back to her human like
           the neighborhood legend she is.
         </p>
+        <div class="overlay-summary hidden" id="overlaySummary">
+          <div class="overlay-summary-grid">
+            <div class="overlay-stat">
+              <p class="meta-label">Total time</p>
+              <p class="overlay-stat-value" id="overlayTime">0:00.00</p>
+            </div>
+            <div class="overlay-stat">
+              <p class="meta-label">Best time</p>
+              <p class="overlay-stat-value" id="overlayBestTime">--:--.--</p>
+            </div>
+          </div>
+          <p class="overlay-best-notice" id="overlayBestNotice">New best time!</p>
+        </div>
         <button id="overlayButton" type="button">Unleash Ray</button>
       </div>
     </div>

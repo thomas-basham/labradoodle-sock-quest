@@ -26,10 +26,18 @@ export const PALETTE = {
 
 export const OBJECTIVES = {
   intro: "Ray is on backyard patrol and ready to sniff out a runaway sock.",
-  searching: "Guide Ray to the missing sock. Her sock radar is already pinging.",
-  returning: "Ray has the sock. Bring it back to her human by the porch.",
-  complete: "Laundry justice served. Click Play again for another Ray-sized sock emergency.",
+  complete: "Round complete. Ray returned every last sock in the yard.",
 };
+
+export function getSearchingObjective(returnedCount, totalSocks) {
+  const currentSock = Math.min(returnedCount + 1, totalSocks);
+  return `Sock ${currentSock} of ${totalSocks}: guide Ray to the next missing sock.`;
+}
+
+export function getReturningObjective(returnedCount, totalSocks) {
+  const currentSock = Math.min(returnedCount + 1, totalSocks);
+  return `Sock ${currentSock} of ${totalSocks} secured. Bring it back to Ray's human by the porch.`;
+}
 
 export const OVERLAY_COPY = {
   intro: {
@@ -37,10 +45,10 @@ export const OVERLAY_COPY = {
     body: "Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos. Track down the missing sock, grab it, and parade it back to her human like the neighborhood legend she is.",
     buttonLabel: "Unleash Ray",
   },
-  win: {
-    title: "Ray claims victory",
-    body: "Ray delivers the prize sock with dramatic confidence and fully expects applause, praise, and at least one honorary treat.",
-    buttonLabel: "Another sock run",
+  complete: {
+    title: "Round complete",
+    body: "Ray rounded up every missing sock in the yard and is awaiting the official post-laundry parade.",
+    buttonLabel: "Play again",
   },
 };
 
@@ -123,10 +131,30 @@ export const JOYSTICK_CONFIG = {
   knobTravel: 36,
 };
 
+export const ROUND_CONFIG = {
+  socksPerRound: 5,
+  bestTimeStorageKey: "ray-sock-quest-best-time-ms",
+};
+
 export const SOCK_SPAWN_POINTS = [
   [-16, 0.2, -10],
   [14, 0.2, -13],
   [-11, 0.2, 4],
   [9, 0.2, 8],
   [16, 0.2, -2],
+  [-18, 0.2, -2],
+  [12, 0.2, -7],
+  [-6, 0.2, 12],
+  [4, 0.2, -15],
+  [-14, 0.2, 10],
+  [18, 0.2, 6],
+  [-3, 0.2, -8],
+];
+
+export const SOCK_DELIVERY_OFFSETS = [
+  [0.45, 1.18, 0.2],
+  [0.85, 1.14, 0.06],
+  [0.16, 1.12, -0.18],
+  [0.98, 1.16, 0.42],
+  [0.62, 1.2, -0.32],
 ];

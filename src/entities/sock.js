@@ -4,9 +4,8 @@ import {
   DOG_CONFIG,
   MARKER_CONFIG,
   PALETTE,
-  SOCK_SPAWN_POINTS,
+  SOCK_DELIVERY_OFFSETS,
 } from "../game/config";
-import { randomItem } from "../utils/math";
 
 function makeStandardMaterial(color, roughness = 0.75) {
   return new THREE.MeshStandardMaterial({
@@ -41,6 +40,8 @@ export function createSock(scene) {
   const sock = new THREE.Group();
   const sockMaterial = makeStandardMaterial(PALETTE.sock, 0.92);
   const stripeMaterial = makeStandardMaterial(PALETTE.sockStripe, 0.82);
+  sockMaterial.transparent = true;
+  stripeMaterial.transparent = true;
 
   const ankle = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.24, 0.9, 14), sockMaterial);
   ankle.position.y = 0.45;
@@ -67,7 +68,7 @@ export function createSock(scene) {
   }
 
   scene.add(sock);
-  resetSock({ sock, scene });
+  sock.userData.materials = [sockMaterial, stripeMaterial];
   return sock;
 }
 
@@ -78,50 +79,48 @@ export function createObjectiveMarkers(scene) {
   };
 }
 
-export function resetSock({ sock, scene }) {
-  const [x, y, z] = randomItem(SOCK_SPAWN_POINTS);
+export function placeSockAt({ sock, scene, position, rotationY }) {
+  const [x, y, z] = position;
   scene.attach(sock);
   sock.position.set(x, y, z);
-  sock.rotation.set(Math.PI / 2, Math.random() * Math.PI, 0.35);
+  sock.rotation.set(Math.PI / 2, rotationY, 0.35);
+  sock.scale.setScalar(1);
+  setSockFocus(sock, false);
 }
 
 export function attachSockToDog({ sock, dog }) {
   dog.attach(sock);
   sock.position.set(...DOG_CONFIG.carryPosition);
   sock.rotation.set(...DOG_CONFIG.carryRotation);
+  sock.scale.setScalar(1);
+  setSockFocus(sock, true);
 }
 
-export function placeSockByOwner({ sock, scene, owner }) {
+export function placeSockByOwner({ sock, scene, owner, deliveryIndex }) {
+  const deliveryOffset = SOCK_DELIVERY_OFFSETS[deliveryIndex % SOCK_DELIVERY_OFFSETS.length];
   scene.attach(sock);
   sock.position.set(
-    owner.position.x + DOG_CONFIG.deliveredPositionOffset[0],
-    DOG_CONFIG.deliveredPositionOffset[1],
-    owner.position.z + DOG_CONFIG.deliveredPositionOffset[2],
+    owner.position.x + deliveryOffset[0],
+    deliveryOffset[1],
+    owner.position.z + deliveryOffset[2],
   );
   sock.rotation.set(...DOG_CONFIG.deliveredRotation);
+  setSockDelivered(sock);
 }
 
-export function updateObjectiveMarkers({
-  elapsed,
-  sockMarker,
-  ownerMarker,
-  sock,
-  owner,
-  worldState,
-  dogState,
-}) {
-  const bob = Math.sin(elapsed * MARKER_CONFIG.bobSpeed) * MARKER_CONFIG.bobHeight;
+export function setSockFocus(sock, isFocused) {
+  const opacity = isFocused ? 1 : 0.6;
+  const scale = isFocused ? 1.02 : 0.92;
 
-  if (!dogState.hasSock) {
-    sockMarker.visible = worldState.gameStarted;
-    sockMarker.position.set(sock.position.x, MARKER_CONFIG.sockHeight + bob, sock.position.z);
-    sockMarker.rotation.y = elapsed * MARKER_CONFIG.sockSpinSpeed;
-    ownerMarker.visible = false;
-    return;
-  }
+  sock.userData.materials.forEach((material) => {
+    material.opacity = opacity;
+  });
+  sock.scale.setScalar(scale);
+}
 
-  ownerMarker.visible = worldState.gameStarted;
-  ownerMarker.position.set(owner.position.x, MARKER_CONFIG.ownerHeight + bob, owner.position.z);
-  ownerMarker.rotation.y = elapsed * MARKER_CONFIG.ownerSpinSpeed;
-  sockMarker.visible = false;
+export function setSockDelivered(sock) {
+  sock.userData.materials.forEach((material) => {
+    material.opacity = 0.96;
+  });
+  sock.scale.setScalar(0.92);
 }

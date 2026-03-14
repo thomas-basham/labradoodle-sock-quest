@@ -16,6 +16,17 @@ export function randomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+export function takeRandomItems(items, count) {
+  const pool = [...items];
+
+  for (let index = pool.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [pool[index], pool[swapIndex]] = [pool[swapIndex], pool[index]];
+  }
+
+  return pool.slice(0, count);
+}
+
 export function getJoystickVector(dx, dy, maxDistance) {
   const distance = Math.min(Math.hypot(dx, dy), maxDistance);
   if (distance === 0) {
