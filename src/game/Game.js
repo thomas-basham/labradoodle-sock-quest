@@ -11,6 +11,7 @@ import {
   updateOwner,
 } from "../entities/owner";
 import { SockManager } from "../entities/sockManager";
+import { VacuumEnemy } from "../entities/vacuum";
 import { JuiceSystem } from "../effects/juiceSystem";
 import { registerKeyboardControls } from "../input/keyboard";
 import { registerTouchControls } from "../input/touch";
@@ -33,6 +34,8 @@ import {
   ROUND_CONFIG,
   SCENE_CONFIG,
   SNIFF_CONFIG,
+  VACUUM_BUMP_LINES,
+  VACUUM_SPOTTED_LINES,
   getReturningObjective,
   getSearchingObjective,
   getSniffHint,
@@ -119,12 +122,16 @@ export class Game {
     this.hazardSystem = new HazardSystem({
       scene: this.scene,
     });
+    this.vacuumEnemy = new VacuumEnemy({
+      scene: this.scene,
+    });
 
     this.hud = createHud();
     this.overlay = createOverlay();
     this.moveKnob = document.getElementById("moveKnob");
     this.sniffButton = document.getElementById("sniffButton");
     this.sniffCooldownEndsAt = 0;
+    this.sockDropProtectedUntil = 0;
     this.pauseStartedAt = null;
     this.hud.setName(DOG_NAME);
     this.setLevelLabel(this.levelManager.getLevelLabel());
@@ -244,6 +251,7 @@ export class Game {
       supportsAudio: this.audioSystem.isSupported(),
     });
     applyQualityPreset(this.renderer, this.settings.qualityPreset);
+    this.syncVacuumEnabled();
   }
 
   handleSettingsChange(patch) {
@@ -266,6 +274,13 @@ export class Game {
     this.worldState.currentLevelNumber = this.levelManager.getCurrentLevelNumber();
     this.worldState.totalLevels = this.levelManager.getTotalLevels();
     this.hud.setLevel(text);
+  }
+
+  syncVacuumEnabled() {
+    const currentLevel = this.levelManager.getCurrentLevel();
+    this.vacuumEnemy.setEnabled(
+      Boolean(this.settings.vacuumEnabled && currentLevel.vacuum?.enabled),
+    );
   }
 
   beginCampaign() {
@@ -338,6 +353,38 @@ export class Game {
 
     if (feedback.impulse) {
       nudgeDog(this.dogState, feedback.impulse);
+    }
+  }
+
+  applyVacuumFeedback(feedback, now = performance.now()) {
+    if (feedback.status) {
+      this.setHazardStatus(feedback.status);
+    }
+
+    if (feedback.spotted) {
+      this.setFlavor(randomItem(VACUUM_SPOTTED_LINES));
+    }
+
+    if (feedback.impulse) {
+      nudgeDog(this.dogState, feedback.impulse);
+    }
+
+    if (!feedback.droppedSock || now < this.sockDropProtectedUntil) {
+      return;
+    }
+
+    if (this.sockManager.dropCarriedSock({
+      position: this.dog.position,
+      yaw: this.dogState.yaw,
+    })) {
+      this.dogState.hasSock = false;
+      this.worldState.state = GAME_STATES.searching;
+      this.setObjective(
+        getSearchingObjective(this.worldState.socksReturned, this.worldState.totalSocks),
+      );
+      this.setSniffHint(SNIFF_CONFIG.defaultHint);
+      this.setFlavor(randomItem(VACUUM_BUMP_LINES));
+      this.updateSniffUi();
     }
   }
 
@@ -508,7 +555,12 @@ export class Game {
       this.sniffCooldownEndsAt += pauseDuration;
     }
 
+    if (this.sockDropProtectedUntil > 0) {
+      this.sockDropProtectedUntil += pauseDuration;
+    }
+
     this.hazardSystem.shiftTimers(pauseDuration);
+    this.vacuumEnemy.shiftTimers(pauseDuration);
     shiftScoringTimers(this.scoringState, pauseDuration);
     this.audioSystem.setPaused(false);
     this.overlay.hide();
@@ -539,10 +591,15 @@ export class Game {
       ],
       levelHazards: currentLevel.hazards,
     });
+    this.vacuumEnemy.resetRound({
+      enabled: Boolean(this.settings.vacuumEnabled && currentLevel.vacuum?.enabled),
+      patrolPoints: currentLevel.vacuum?.patrolPoints ?? [],
+    });
     this.worldState.gameStarted = true;
     this.worldState.state = GAME_STATES.searching;
     this.dogState.hasSock = false;
     this.sniffCooldownEndsAt = 0;
+    this.sockDropProtectedUntil = 0;
     this.roundStartTime = performance.now();
     if (carryOverScore) {
       beginNextRoundScoring(this.scoringState, this.roundStartTime);
@@ -634,6 +691,7 @@ export class Game {
 
   pickupSock() {
     this.dogState.hasSock = true;
+    this.sockDropProtectedUntil = performance.now() + 800;
     this.setObjective(
       getReturningObjective(this.worldState.socksReturned, this.worldState.totalSocks),
     );
@@ -789,6 +847,17 @@ export class Game {
       });
 
       this.checkObjectives();
+      this.applyVacuumFeedback(
+        this.vacuumEnemy.update({
+          delta,
+          elapsed,
+          now,
+          gameStarted: this.worldState.gameStarted,
+          dogPosition: this.dog.position,
+          carryingSock: this.dogState.hasSock,
+        }),
+        now,
+      );
     }
 
     this.updateComboUi(now);

@@ -54,6 +54,10 @@ function normalizeSettings(rawSettings = {}) {
     ),
     invertY:
       typeof rawSettings.invertY === "boolean" ? rawSettings.invertY : SETTINGS_CONFIG.defaultInvertY,
+    vacuumEnabled:
+      typeof rawSettings.vacuumEnabled === "boolean"
+        ? rawSettings.vacuumEnabled
+        : SETTINGS_CONFIG.defaultVacuumEnabled,
     qualityPreset,
   };
 }

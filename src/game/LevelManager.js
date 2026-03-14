@@ -79,6 +79,10 @@ const SUNNY_BACKYARD = {
       ],
     },
   },
+  vacuum: {
+    enabled: false,
+    patrolPoints: [],
+  },
   sockSpawnPoints: [
     [-16, 0.2, -10],
     [14, 0.2, -13],
@@ -175,6 +179,17 @@ const EVENING_BACKYARD = {
         { x: 20, z: -11, halfWidth: 2.5, halfDepth: 1.45 },
       ],
     },
+  },
+  vacuum: {
+    enabled: true,
+    patrolPoints: [
+      [-16, 0, -8],
+      [-9, 0, 4],
+      [2, 0, 6],
+      [13, 0, -2],
+      [9, 0, -12],
+      [-4, 0, -10],
+    ],
   },
   sockSpawnPoints: [
     [-15, 0.2, -11],
@@ -278,6 +293,17 @@ const CHAOTIC_LAUNDRY_DAY = {
       ],
     },
   },
+  vacuum: {
+    enabled: true,
+    patrolPoints: [
+      [-14, 0, 8],
+      [-6, 0, 0],
+      [3, 0, 10],
+      [14, 0, 3],
+      [10, 0, -10],
+      [-3, 0, -8],
+    ],
+  },
   sockSpawnPoints: [
     [-13, 0.2, 10],
     [-8, 0.2, -7],
@@ -344,6 +370,7 @@ export class LevelManager {
       number: index + 1,
       name: level.name,
       description: level.description,
+      hasVacuum: Boolean(level.vacuum?.enabled),
     }));
   }
 }

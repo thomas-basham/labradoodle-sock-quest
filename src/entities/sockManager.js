@@ -211,6 +211,27 @@ export class SockManager {
     return true;
   }
 
+  dropCarriedSock({ position, yaw = 0 }) {
+    if (!this.carriedSock) {
+      return false;
+    }
+
+    const droppedSock = this.carriedSock;
+    const dropOffsetX = Math.sin(yaw) * 0.95;
+    const dropOffsetZ = Math.cos(yaw) * 0.95;
+
+    this.carriedSock = null;
+    this.clearSniffEffects();
+    placeSockAt({
+      sock: droppedSock,
+      scene: this.scene,
+      position: [position.x + dropOffsetX, 0.2, position.z + dropOffsetZ],
+      rotationY: yaw + Math.PI * 0.35,
+    });
+    setSockFocus(droppedSock, true);
+    return true;
+  }
+
   tryReturn(dogPosition, tempVector) {
     if (!this.carriedSock) {
       return { returned: false, roundComplete: false, returnedCount: this.returnedCount };

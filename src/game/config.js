@@ -35,6 +35,10 @@ export const PALETTE = {
   gardenSoil: 0x6f4a2e,
   gardenBorder: 0xb68454,
   gardenLeaf: 0x5d8c44,
+  vacuumShell: 0xf5d9a6,
+  vacuumTrim: 0x3b4756,
+  vacuumGlow: 0x83f0ff,
+  vacuumAlert: 0xff8a5a,
 };
 
 export const OBJECTIVES = {
@@ -76,6 +80,20 @@ export const FLAVOR_MESSAGES = [
   "The scent profile is 82% cotton, 18% mischief.",
   "Ray is operating at maximum sniffacity.",
   "Alert: lone sock energy is rising.",
+];
+
+export const VACUUM_SPOTTED_LINES = [
+  "Robot vacuum has entered sock enforcement mode.",
+  "Whirr detected. Ray has been marked for cleanup.",
+  "Vacuum eyes glowing. Backyard tension escalating.",
+  "Beeper contact. Ray may need a tactical detour.",
+];
+
+export const VACUUM_BUMP_LINES = [
+  "The vacuum body-checked the mission.",
+  "Sock run interrupted by an extremely committed appliance.",
+  "Ray has been politely but firmly vacuumed aside.",
+  "Backyard Roomba says this route is under review.",
 ];
 
 export const OWNER_REACTION_LINES = [
@@ -131,6 +149,7 @@ export const SETTINGS_CONFIG = {
     defaultValue: 1,
   },
   defaultInvertY: false,
+  defaultVacuumEnabled: true,
   defaultQualityPreset: "high",
   qualityPresets: ["low", "medium", "high"],
 };
@@ -264,6 +283,33 @@ export const HAZARD_CONFIG = {
     title: "Garden border",
     detail: "No trampling the petunias, Ray.",
     calloutCooldownMs: 1200,
+  },
+};
+
+export const VACUUM_CONFIG = {
+  hoverHeight: 0.22,
+  patrolSpeed: 2.8,
+  chaseSpeed: 4.6,
+  detectionRadius: 5.6,
+  bumpDistance: 1.65,
+  bumpStrength: 5.8,
+  chaseDurationMs: 2600,
+  alertHoldMs: 1350,
+  bumpCooldownMs: 2200,
+  status: {
+    badge: "Vacuum",
+    title: "Robot patrol",
+    detail: "A cheerful little appliance is reconsidering Ray's route.",
+  },
+  chaseStatus: {
+    badge: "Vacuum",
+    title: "Robot vacuum locked on",
+    detail: "The porch appliance has spotted Ray. Keep paws light.",
+  },
+  bumpStatus: {
+    badge: "Bumped",
+    title: "Vacuum collision",
+    detail: "Robot bumper contact. The sock mission just got shuffled.",
   },
 };
 
