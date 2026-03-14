@@ -14,6 +14,7 @@ export function createWorldState() {
   return {
     size: WORLD_SIZE,
     gameStarted: false,
+    paused: false,
     state: GAME_STATES.intro,
     objective: OBJECTIVES.intro,
     socksReturned: 0,
@@ -49,6 +50,16 @@ export function createInputState() {
     moveX: 0,
     moveY: 0,
   };
+}
+
+export function resetInputState(inputState) {
+  inputState.forward = false;
+  inputState.backward = false;
+  inputState.left = false;
+  inputState.right = false;
+  inputState.sprint = false;
+  inputState.moveX = 0;
+  inputState.moveY = 0;
 }
 
 export function createTouchState() {

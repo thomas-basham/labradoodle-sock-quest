@@ -408,6 +408,30 @@ export class HazardSystem {
     this.hazards.forEach((hazard) => this.layoutGroup.add(hazard.root));
   }
 
+  shiftTimers(offsetMs) {
+    if (offsetMs <= 0) {
+      return;
+    }
+
+    if (this.nextGardenCalloutAt > 0) {
+      this.nextGardenCalloutAt += offsetMs;
+    }
+
+    this.hazards.forEach((hazard) => {
+      if ("nextSplashAt" in hazard && hazard.nextSplashAt > 0) {
+        hazard.nextSplashAt += offsetMs;
+      }
+
+      if ("nextTriggerAt" in hazard && hazard.nextTriggerAt > 0) {
+        hazard.nextTriggerAt += offsetMs;
+      }
+
+      if ("nextMistAt" in hazard && hazard.nextMistAt > 0) {
+        hazard.nextMistAt += offsetMs;
+      }
+    });
+  }
+
   getDefaultStatus() {
     return {
       ...HAZARD_CONFIG.defaultStatus,

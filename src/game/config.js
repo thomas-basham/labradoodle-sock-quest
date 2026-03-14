@@ -122,6 +122,19 @@ export const CAMERA_CONFIG = {
   bobSpeed: 8.5,
 };
 
+export const SETTINGS_CONFIG = {
+  storageKey: "ray-sock-quest-player-settings",
+  mouseSensitivity: {
+    min: 0.6,
+    max: 1.8,
+    step: 0.1,
+    defaultValue: 1,
+  },
+  defaultInvertY: false,
+  defaultQualityPreset: "high",
+  qualityPresets: ["low", "medium", "high"],
+};
+
 export const OWNER_CONFIG = {
   position: [0, 0.5, 16.6],
   idleBobHeight: 0.06,
