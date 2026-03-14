@@ -8,6 +8,8 @@ export function createWorldState() {
     gameStarted: false,
     state: GAME_STATES.intro,
     objective: OBJECTIVES.intro,
+    socksCollected: 0,
+    flavorText: "",
   };
 }
 

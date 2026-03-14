@@ -15,8 +15,17 @@ import { registerKeyboardControls } from "../input/keyboard";
 import { registerTouchControls } from "../input/touch";
 import { createHud } from "../ui/hud";
 import { createOverlay } from "../ui/overlay";
+import { randomItem } from "../utils/math";
 import { buildEnvironment } from "../world/environment";
-import { DOG_CONFIG, GAME_STATES, OBJECTIVES, SCENE_CONFIG } from "./config";
+import {
+  DEFAULT_FLAVOR_MESSAGE,
+  DOG_CONFIG,
+  DOG_NAME,
+  FLAVOR_MESSAGES,
+  GAME_STATES,
+  OBJECTIVES,
+  SCENE_CONFIG,
+} from "./config";
 import {
   createDogState,
   createInputState,
@@ -69,7 +78,10 @@ export class Game {
 
     this.hud = createHud();
     this.overlay = createOverlay();
+    this.hud.setName(DOG_NAME);
     this.hud.setObjective(this.worldState.objective);
+    this.hud.setCollected(this.worldState.socksCollected);
+    this.hud.setFlavor(DEFAULT_FLAVOR_MESSAGE);
     this.overlay.showIntro();
 
     this.handleOverlayAction = this.handleOverlayAction.bind(this);
@@ -122,6 +134,28 @@ export class Game {
     this.hud.setObjective(text);
   }
 
+  setCollected(count) {
+    this.worldState.socksCollected = count;
+    this.hud.setCollected(count);
+  }
+
+  setFlavor(text) {
+    this.worldState.flavorText = text;
+    this.hud.setFlavor(text);
+  }
+
+  getRandomFlavor() {
+    let flavor = randomItem(FLAVOR_MESSAGES);
+
+    if (FLAVOR_MESSAGES.length > 1) {
+      while (flavor === this.worldState.flavorText) {
+        flavor = randomItem(FLAVOR_MESSAGES);
+      }
+    }
+
+    return flavor;
+  }
+
   tryStartGame() {
     if (this.worldState.gameStarted) return;
     if (this.worldState.state === GAME_STATES.complete) return;
@@ -141,7 +175,9 @@ export class Game {
     this.worldState.gameStarted = true;
     this.worldState.state = GAME_STATES.searching;
     this.overlay.hide();
+    this.setCollected(0);
     this.setObjective(OBJECTIVES.searching);
+    this.setFlavor(this.getRandomFlavor());
     this.sockMarker.visible = true;
     this.ownerMarker.visible = false;
   }
@@ -164,8 +200,10 @@ export class Game {
 
   pickupSock() {
     this.dogState.hasSock = true;
+    this.setCollected(this.worldState.socksCollected + 1);
     attachSockToDog({ sock: this.sock, dog: this.dog });
     this.setObjective(OBJECTIVES.returning);
+    this.setFlavor(this.getRandomFlavor());
   }
 
   checkObjectives() {

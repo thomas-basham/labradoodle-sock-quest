@@ -113,7 +113,7 @@ h2 {
 .status-card,
 .controls-card {
   justify-self: end;
-  width: min(320px, calc(100vw - 48px));
+  width: min(360px, calc(100vw - 48px));
   padding: 16px 18px;
 }
 
@@ -124,11 +124,51 @@ h2 {
 }
 
 .status-card #objectiveLabel {
+  margin-top: 10px;
   margin-bottom: 4px;
   font-size: 0.82rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent-dark);
+}
+
+.status-card .meta-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+}
+
+.status-card .meta-value {
+  margin: 4px 0 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.status-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(45, 29, 15, 0.12);
+}
+
+.status-chunk {
+  min-width: 0;
+}
+
+.status-chunk-wide {
+  min-width: 0;
+}
+
+.status-card .flavor-text {
+  margin: 4px 0 0;
+  font-size: 0.93rem;
+  line-height: 1.42;
+  color: rgba(52, 36, 20, 0.86);
 }
 
 .controls-card {
@@ -289,6 +329,10 @@ button:focus-visible {
   .controls-card,
   .overlay-card {
     border-radius: 18px;
+  }
+
+  .status-row {
+    grid-template-columns: 1fr;
   }
 }
 

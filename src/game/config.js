@@ -6,6 +6,7 @@ export const GAME_STATES = {
 };
 
 export const WORLD_SIZE = 28;
+export const DOG_NAME = "Ray";
 
 export const PALETTE = {
   grass: 0x8dbf57,
@@ -24,24 +25,37 @@ export const PALETTE = {
 };
 
 export const OBJECTIVES = {
-  intro: "Wake up, wiggle, and find the missing sock.",
-  searching: "Find the sock somewhere in the yard. The floating marker will guide you.",
-  returning: "Sock secured. Bring it back to your human by the porch.",
-  complete: "Mission complete. Click Play again to hide another sock.",
+  intro: "Ray is on backyard patrol and ready to sniff out a runaway sock.",
+  searching: "Guide Ray to the missing sock. Her sock radar is already pinging.",
+  returning: "Ray has the sock. Bring it back to her human by the porch.",
+  complete: "Laundry justice served. Click Play again for another Ray-sized sock emergency.",
 };
 
 export const OVERLAY_COPY = {
   intro: {
-    title: "Find the Missing Sock",
-    body: "You are a determined labradoodle. Sniff out the sock, grab it, and bring it back to your human by the porch.",
-    buttonLabel: "Start sniffing",
+    title: "Ray and the Missing Sock",
+    body: "Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos. Track down the missing sock, grab it, and parade it back to her human like the neighborhood legend she is.",
+    buttonLabel: "Unleash Ray",
   },
   win: {
-    title: "Sock returned",
-    body: "You trot up to your human, present the sock like a hero, and earn maximum good dog status.",
-    buttonLabel: "Play again",
+    title: "Ray claims victory",
+    body: "Ray delivers the prize sock with dramatic confidence and fully expects applause, praise, and at least one honorary treat.",
+    buttonLabel: "Another sock run",
   },
 };
+
+export const DEFAULT_FLAVOR_MESSAGE = "Ray's sock radar is on warm-up duty.";
+
+export const FLAVOR_MESSAGES = [
+  "Ray has detected forbidden laundry.",
+  "Sock radar activated.",
+  "No ankle garment is safe.",
+  "Ray suspects the sock is trying to hide.",
+  "Laundry turbulence in the backyard.",
+  "The scent profile is 82% cotton, 18% mischief.",
+  "Ray is operating at maximum sniffacity.",
+  "Alert: lone sock energy is rising.",
+];
 
 export const SCENE_CONFIG = {
   fogColor: 0xf6d78d,
@@ -90,6 +104,7 @@ export const DOG_CONFIG = {
   idleAnimationSpeed: 3.2,
   activeSpeedThreshold: 0.4,
   bounceHeight: 0.08,
+  idleBounceHeight: 0.028,
 };
 
 export const MARKER_CONFIG = {
