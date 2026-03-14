@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Labradoodle Sock Quest</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="hud">
+      <div class="title-wrap">
+        <p class="eyebrow">Neighborhood Retrieval Simulator</p>
+        <h1>Labradoodle Sock Quest</h1>
+      </div>
+      <div class="status-card">
+        <p id="objectiveLabel">Objective</p>
+        <p id="objectiveText">Wake up, wiggle, and find the missing sock.</p>
+      </div>
+      <div class="controls-card">
+        <p>Move: <span>WASD / Arrow Keys</span></p>
+        <p>Sprint: <span>Shift</span></p>
+        <p>Look: <span>Mouse / Touch drag</span></p>
+      </div>
+    </div>
+    <div class="reticle"></div>
+    <div class="overlay" id="overlay">
+      <div class="overlay-card">
+        <p class="eyebrow">A dog-sized mission</p>
+        <h2 id="overlayTitle">Find the Missing Sock</h2>
+        <p id="overlayBody">
+          You are a determined labradoodle. Sniff out the sock, grab it, and bring
+          it back to your human by the porch.
+        </p>
+        <button id="overlayButton" type="button">Start sniffing</button>
+      </div>
+    </div>
+    <div id="app"></div>
+    <div class="mobile-controls">
+      <div class="joystick" id="movePad" aria-hidden="true">
+        <div class="joystick-ring"></div>
+        <div class="joystick-knob" id="moveKnob"></div>
+      </div>
+      <button class="sprint-button" id="sprintButton" type="button">Sprint</button>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
