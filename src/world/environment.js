@@ -323,5 +323,4 @@ export function buildEnvironment({ scene, worldSize }) {
 
   createToyBone(scene, new THREE.Vector3(10.2, 0.16, 5.5));
   createToyBone(scene, new THREE.Vector3(-8.7, 0.16, -4.8));
-  createLaundryBasket(scene, new THREE.Vector3(4.9, 0, 19.6), -0.45);
 }

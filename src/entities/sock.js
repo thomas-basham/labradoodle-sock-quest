@@ -97,6 +97,16 @@ export function attachSockToDog({ sock, dog }) {
 }
 
 export function placeSockByOwner({ sock, scene, owner, deliveryIndex }) {
+  if (owner.userData.hamper && owner.userData.sockRestTargets?.length) {
+    const deliveryTarget =
+      owner.userData.sockRestTargets[deliveryIndex % owner.userData.sockRestTargets.length];
+    owner.userData.hamper.attach(sock);
+    sock.position.copy(deliveryTarget.position);
+    sock.rotation.copy(deliveryTarget.rotation);
+    setSockDelivered(sock);
+    return;
+  }
+
   const deliveryOffset = SOCK_DELIVERY_OFFSETS[deliveryIndex % SOCK_DELIVERY_OFFSETS.length];
   scene.attach(sock);
   sock.position.set(

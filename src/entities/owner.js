@@ -88,6 +88,63 @@ function showCompliment(owner, text, scaleMultiplier, duration) {
   owner.userData.complimentDuration = duration;
 }
 
+function createHamper() {
+  const hamper = new THREE.Group();
+  const basketMaterial = makeStandardMaterial(0xcaa271, 0.9);
+  const trimMaterial = makeStandardMaterial(0xa67f52, 0.88);
+  const clothColors = [0xf3d2a2, 0xffb2c7, PALETTE.sock, PALETTE.sockStripe];
+
+  const shell = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.92, 1.04, 1.08, 18, 1, true),
+    basketMaterial,
+  );
+  shell.position.y = 0.58;
+  shell.castShadow = true;
+  shell.receiveShadow = true;
+  hamper.add(shell);
+
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.88, 0.16, 18), trimMaterial);
+  base.position.y = 0.08;
+  base.castShadow = true;
+  hamper.add(base);
+
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.94, 0.07, 12, 28), trimMaterial);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 1.08;
+  rim.castShadow = true;
+  hamper.add(rim);
+
+  for (let index = 0; index < 3; index += 1) {
+    const cloth = new THREE.Mesh(
+      new THREE.SphereGeometry(0.2 + index * 0.04, 14, 14),
+      makeStandardMaterial(clothColors[index % clothColors.length], 0.92),
+    );
+    cloth.position.set(-0.18 + index * 0.18, 0.88 + (index % 2) * 0.08, 0.12 - index * 0.06);
+    cloth.castShadow = true;
+    hamper.add(cloth);
+  }
+
+  hamper.position.set(-2.05, -0.48, -0.18);
+
+  const targetData = [
+    { position: [0.02, 0.74, 0.08], rotation: [Math.PI / 2, -0.08, 0.18] },
+    { position: [0.26, 0.84, -0.04], rotation: [Math.PI / 2, 0.38, -0.05] },
+    { position: [-0.24, 0.8, 0.02], rotation: [Math.PI / 2, -0.42, 0.12] },
+    { position: [0.08, 0.96, 0.18], rotation: [Math.PI / 2, 0.16, 0.26] },
+    { position: [-0.08, 0.9, -0.16], rotation: [Math.PI / 2, -0.22, -0.18] },
+  ];
+
+  const sockRestTargets = targetData.map((target) => {
+    const anchor = new THREE.Object3D();
+    anchor.position.set(...target.position);
+    anchor.rotation.set(...target.rotation);
+    hamper.add(anchor);
+    return anchor;
+  });
+
+  return { hamper, sockRestTargets };
+}
+
 export function createOwner(scene) {
   const owner = new THREE.Group();
   const bodyRig = new THREE.Group();
@@ -152,6 +209,9 @@ export function createOwner(scene) {
   complimentText.sprite.position.set(0, OWNER_CONFIG.complimentHeight, 0);
   owner.add(complimentText.sprite);
 
+  const { hamper, sockRestTargets } = createHamper();
+  owner.add(hamper);
+
   owner.position.set(...OWNER_CONFIG.position);
   owner.rotation.y = Math.PI;
   owner.userData = {
@@ -164,6 +224,8 @@ export function createOwner(scene) {
     baseLeftArmRotation: 0.24,
     baseRightArmRotation: -0.24,
     complimentText,
+    hamper,
+    sockRestTargets,
     complimentTimer: 0,
     complimentDuration: OWNER_CONFIG.complimentDuration,
     celebrationTimer: 0,
@@ -182,6 +244,7 @@ export function resetOwner(owner) {
   owner.userData.hairCap.rotation.set(0, 0, 0);
   owner.userData.leftArmPivot.rotation.set(0, 0, owner.userData.baseLeftArmRotation);
   owner.userData.rightArmPivot.rotation.set(0, 0, owner.userData.baseRightArmRotation);
+  owner.userData.hamper.rotation.set(0, 0, 0);
   owner.userData.complimentText.sprite.visible = false;
   owner.userData.complimentText.sprite.material.opacity = 0;
   owner.userData.complimentTimer = 0;
@@ -235,6 +298,7 @@ export function updateOwner(owner, delta, elapsed) {
 
   data.bodyRig.position.y = bodyBob;
   data.bodyRig.rotation.y = bodyYaw;
+  data.hamper.rotation.z = data.celebrationTimer > 0 ? Math.sin(elapsed * 6.2) * 0.04 : 0;
   data.head.rotation.x = headNod;
   data.head.rotation.z = headTilt;
   data.hairCap.rotation.z = headTilt * 0.65;
