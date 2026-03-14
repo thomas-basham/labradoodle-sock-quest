@@ -34,13 +34,25 @@ function animateDog(dog, dogState, delta) {
   const moving = dogState.speed > DOG_CONFIG.activeSpeedThreshold;
   dogState.animationTime += delta * (moving ? DOG_CONFIG.moveAnimationSpeed : DOG_CONFIG.idleAnimationSpeed);
 
-  const bounce = moving ? Math.abs(Math.sin(dogState.animationTime * 2)) * DOG_CONFIG.bounceHeight : 0;
+  const bounce = moving
+    ? Math.abs(Math.sin(dogState.animationTime * 2)) * DOG_CONFIG.bounceHeight
+    : Math.sin(dogState.animationTime * 1.15) * 0.012 +
+      Math.abs(Math.sin(dogState.animationTime * 2.2)) * DOG_CONFIG.idleBounceHeight;
   dog.position.y = bounce;
 
-  dog.userData.head.rotation.z = moving ? Math.sin(dogState.animationTime * 2) * 0.04 : 0;
-  dog.userData.tail.rotation.y = Math.sin(dogState.animationTime * 2.8) * 0.45;
-  dog.userData.leftEar.rotation.x = moving ? Math.sin(dogState.animationTime * 1.5) * 0.08 : 0.03;
-  dog.userData.rightEar.rotation.x = moving ? -Math.sin(dogState.animationTime * 1.5) * 0.08 : -0.03;
+  dog.userData.head.rotation.x = moving ? 0 : Math.sin(dogState.animationTime * 2.1) * 0.06;
+  dog.userData.head.rotation.z = moving
+    ? Math.sin(dogState.animationTime * 2) * 0.04
+    : Math.sin(dogState.animationTime * 0.85) * 0.14;
+  dog.userData.tail.rotation.y = moving
+    ? Math.sin(dogState.animationTime * 2.8) * 0.45
+    : Math.sin(dogState.animationTime * 3.8) * 0.7;
+  dog.userData.leftEar.rotation.x = moving
+    ? Math.sin(dogState.animationTime * 1.5) * 0.08
+    : 0.03 + Math.sin(dogState.animationTime * 1.4) * 0.04;
+  dog.userData.rightEar.rotation.x = moving
+    ? -Math.sin(dogState.animationTime * 1.5) * 0.08
+    : -0.03 - Math.sin(dogState.animationTime * 1.4) * 0.04;
 
   const legPhase = [0, Math.PI, Math.PI, 0];
   dog.userData.legs.forEach((leg, index) => {

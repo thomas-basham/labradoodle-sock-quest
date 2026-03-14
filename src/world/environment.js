@@ -263,6 +263,47 @@ function createToyBone(scene, position) {
   scene.add(group);
 }
 
+function createLaundryBasket(scene, position, rotationY = 0) {
+  const basket = new THREE.Group();
+  const basketMaterial = makeStandardMaterial(0xcaa271, 0.9);
+  const trimMaterial = makeStandardMaterial(0xa67f52, 0.88);
+  const clothColors = [0xf3d2a2, 0xffb2c7, PALETTE.sock, PALETTE.sockStripe];
+
+  const shell = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.9, 1.04, 1.08, 18, 1, true),
+    basketMaterial,
+  );
+  shell.position.y = 0.58;
+  shell.castShadow = true;
+  shell.receiveShadow = true;
+  basket.add(shell);
+
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.86, 0.16, 18), trimMaterial);
+  base.position.y = 0.08;
+  base.castShadow = true;
+  basket.add(base);
+
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.07, 12, 28), trimMaterial);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 1.08;
+  rim.castShadow = true;
+  basket.add(rim);
+
+  for (let i = 0; i < 4; i += 1) {
+    const cloth = new THREE.Mesh(
+      new THREE.SphereGeometry(0.24 + i * 0.02, 14, 14),
+      makeStandardMaterial(clothColors[i % clothColors.length], 0.92),
+    );
+    cloth.position.set(-0.26 + i * 0.19, 1.0 + (i % 2) * 0.08, -0.06 + i * 0.06);
+    cloth.castShadow = true;
+    basket.add(cloth);
+  }
+
+  basket.position.copy(position);
+  basket.rotation.y = rotationY;
+  scene.add(basket);
+}
+
 export function buildEnvironment({ scene, worldSize }) {
   addLights(scene);
   addSkyDome(scene);
@@ -282,4 +323,5 @@ export function buildEnvironment({ scene, worldSize }) {
 
   createToyBone(scene, new THREE.Vector3(10.2, 0.16, 5.5));
   createToyBone(scene, new THREE.Vector3(-8.7, 0.16, -4.8));
+  createLaundryBasket(scene, new THREE.Vector3(4.9, 0, 19.6), -0.45);
 }
