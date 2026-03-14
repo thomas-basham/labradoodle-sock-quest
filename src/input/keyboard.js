@@ -1,14 +1,32 @@
-export function registerKeyboardControls({ inputState, onStart, onSniff }) {
+export function registerKeyboardControls({
+  inputState,
+  onPrimaryAction,
+  onSniff,
+  onPauseToggle,
+  canControl = () => true,
+}) {
   function handleKeyDown(event) {
     const key = event.key.toLowerCase();
+    const controlsEnabled = canControl();
 
-    if (key === "w" || key === "arrowup") inputState.forward = true;
-    if (key === "s" || key === "arrowdown") inputState.backward = true;
-    if (key === "a" || key === "arrowleft") inputState.left = true;
-    if (key === "d" || key === "arrowright") inputState.right = true;
-    if (key === "shift") inputState.sprint = true;
-    if (key === "enter") onStart();
-    if (event.code === "Space") {
+    if (key === "escape") {
+      event.preventDefault();
+      onPauseToggle();
+      return;
+    }
+
+    if (controlsEnabled) {
+      if (key === "w" || key === "arrowup") inputState.forward = true;
+      if (key === "s" || key === "arrowdown") inputState.backward = true;
+      if (key === "a" || key === "arrowleft") inputState.left = true;
+      if (key === "d" || key === "arrowright") inputState.right = true;
+      if (key === "shift") inputState.sprint = true;
+    }
+
+    if (key === "enter" && !event.repeat) {
+      onPrimaryAction();
+    }
+    if (controlsEnabled && event.code === "Space") {
       event.preventDefault();
       if (!event.repeat) {
         onSniff();

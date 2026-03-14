@@ -38,12 +38,14 @@ import {
   getSearchingObjective,
   getSniffHint,
 } from "./config";
+import { applyQualityPreset, loadSettings, updateSettings } from "./settings";
 import {
   createDogState,
   createInputState,
   createPointerState,
   createTouchState,
   createWorldState,
+  resetInputState,
 } from "./state";
 
 function createRenderer(mount) {
@@ -69,6 +71,8 @@ export class Game {
 
     this.camera = createFollowCamera();
     this.renderer = createRenderer(mount);
+    this.settings = loadSettings();
+    applyQualityPreset(this.renderer, this.settings.qualityPreset);
     this.clock = new THREE.Clock();
     this.tempVector = new THREE.Vector3();
     this.effectVector = new THREE.Vector3();
@@ -84,7 +88,9 @@ export class Game {
     this.owner = createOwner(this.scene);
     this.dog = createDog(this.scene);
     this.dogState = createDogState(this.dog);
-    this.audioSystem = new AudioSystem();
+    this.audioSystem = new AudioSystem({
+      enabled: this.settings.soundEnabled,
+    });
     this.juiceSystem = new JuiceSystem({
       scene: this.scene,
       dog: this.dog,
@@ -100,8 +106,10 @@ export class Game {
 
     this.hud = createHud();
     this.overlay = createOverlay();
+    this.moveKnob = document.getElementById("moveKnob");
     this.sniffButton = document.getElementById("sniffButton");
     this.sniffCooldownEndsAt = 0;
+    this.pauseStartedAt = null;
     this.hud.setName(DOG_NAME);
     this.hud.setObjective(this.worldState.objective);
     this.hud.setProgress(this.worldState.socksReturned, this.worldState.totalSocks);
@@ -113,24 +121,34 @@ export class Game {
     this.hud.setFlavor(DEFAULT_FLAVOR_MESSAGE);
     this.hud.setHazardStatus(HAZARD_CONFIG.defaultStatus);
     this.hud.setSprinklerOverlay(0);
-    this.overlay.showIntro();
+    this.overlay.showStart({
+      settings: this.settings,
+      supportsAudio: this.audioSystem.isSupported(),
+    });
     this.roundStartTime = null;
 
     this.handleOverlayAction = this.handleOverlayAction.bind(this);
+    this.handleMenu = this.handleMenu.bind(this);
+    this.handlePauseToggle = this.handlePauseToggle.bind(this);
+    this.handlePrimaryAction = this.handlePrimaryAction.bind(this);
+    this.handleSettingsChange = this.handleSettingsChange.bind(this);
     this.handleSoundToggle = this.handleSoundToggle.bind(this);
     this.handleSniff = this.handleSniff.bind(this);
-    this.tryStartGame = this.tryStartGame.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.render = this.render.bind(this);
 
     this.cleanups = [
       this.overlay.onAction(this.handleOverlayAction),
+      this.overlay.onSettingsChange(this.handleSettingsChange),
       registerKeyboardControls({
         inputState: this.inputState,
-        onStart: this.tryStartGame,
+        onPrimaryAction: this.handlePrimaryAction,
         onSniff: this.handleSniff,
+        onPauseToggle: this.handlePauseToggle,
+        canControl: () => this.canControl(),
       }),
       this.hud.onSoundToggle(this.handleSoundToggle),
+      this.hud.onMenu(this.handleMenu),
       registerTouchControls({
         canvas: this.renderer.domElement,
         movePad: document.getElementById("movePad"),
@@ -141,6 +159,8 @@ export class Game {
         onSniff: this.handleSniff,
         pointerState: this.pointerState,
         touchState: this.touchState,
+        canControl: () => this.canControl(),
+        getLookSettings: () => this.getLookSettings(),
       }),
     ];
     this.hud.setSoundEnabled(this.audioSystem.getEnabled(), this.audioSystem.isSupported());
@@ -169,15 +189,54 @@ export class Game {
   handleResize() {
     resizeFollowCamera(this.camera);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    applyQualityPreset(this.renderer, this.settings.qualityPreset);
+  }
+
+  canControl() {
+    return this.worldState.gameStarted && !this.worldState.paused && !this.overlay.isVisible();
+  }
+
+  getLookSettings() {
+    return {
+      mouseSensitivity: this.settings.mouseSensitivity,
+      invertY: this.settings.invertY,
+    };
+  }
+
+  clearControlState() {
+    resetInputState(this.inputState);
+    this.pointerState.active = false;
+    this.touchState.moveId = null;
+    this.touchState.lookId = null;
+    this.touchState.moveVector.set(0, 0);
+
+    if (this.moveKnob) {
+      this.moveKnob.style.transform = "translate(0px, 0px)";
+    }
+  }
+
+  applySettings() {
+    this.audioSystem.setEnabled(this.settings.soundEnabled);
+    this.hud.setSoundEnabled(this.settings.soundEnabled, this.audioSystem.isSupported());
+    this.overlay.updateSettings(this.settings, {
+      supportsAudio: this.audioSystem.isSupported(),
+    });
+    applyQualityPreset(this.renderer, this.settings.qualityPreset);
+  }
+
+  handleSettingsChange(patch) {
+    this.settings = updateSettings(this.settings, patch);
+    this.applySettings();
+
+    if (this.settings.soundEnabled) {
+      this.audioSystem.unlock();
+    }
   }
 
   handleSoundToggle() {
-    const enabled = this.audioSystem.toggleEnabled();
-    if (enabled) {
-      this.audioSystem.unlock();
-    }
-
-    this.hud.setSoundEnabled(this.audioSystem.getEnabled(), this.audioSystem.isSupported());
+    this.handleSettingsChange({
+      soundEnabled: !this.settings.soundEnabled,
+    });
   }
 
   setObjective(text) {
@@ -236,13 +295,16 @@ export class Game {
   }
 
   getSniffCooldownRemaining(now = performance.now()) {
-    return Math.max(0, this.sniffCooldownEndsAt - now);
+    const referenceNow =
+      this.worldState.paused && this.pauseStartedAt !== null ? this.pauseStartedAt : now;
+    return Math.max(0, this.sniffCooldownEndsAt - referenceNow);
   }
 
   updateSniffUi(now = performance.now()) {
     const remainingMs = this.getSniffCooldownRemaining(now);
     const sniffAvailable =
       this.worldState.gameStarted &&
+      !this.worldState.paused &&
       this.worldState.state === GAME_STATES.searching &&
       remainingMs === 0;
 
@@ -265,26 +327,108 @@ export class Game {
     return flavor;
   }
 
-  tryStartGame() {
-    if (this.worldState.gameStarted) return;
-    if (this.worldState.state === GAME_STATES.complete) {
-      this.resetRound();
+  handlePrimaryAction() {
+    const screen = this.overlay.getScreen();
+
+    if (screen === "start") {
+      this.startRound();
       return;
     }
-    this.startRound();
+
+    if (screen === "pause") {
+      this.resumeGame();
+      return;
+    }
+
+    if (screen === "complete") {
+      this.resetRound();
+    }
   }
 
-  handleOverlayAction() {
-    if (this.worldState.state === GAME_STATES.complete) {
-      this.resetRound();
+  handleOverlayAction(action) {
+    if (action === "play") {
+      this.startRound();
       return;
     }
 
-    this.startRound();
+    if (action === "resume") {
+      this.resumeGame();
+      return;
+    }
+
+    if (action === "restart") {
+      this.resetRound();
+    }
+  }
+
+  handleMenu() {
+    if (this.worldState.gameStarted && !this.worldState.paused) {
+      this.pauseGame();
+    }
+  }
+
+  handlePauseToggle() {
+    if (this.overlay.handleEscape()) {
+      return;
+    }
+
+    if (this.worldState.paused) {
+      this.resumeGame();
+      return;
+    }
+
+    if (this.worldState.gameStarted) {
+      this.pauseGame();
+    }
+  }
+
+  pauseGame() {
+    if (!this.worldState.gameStarted || this.worldState.paused) {
+      return;
+    }
+
+    const now = performance.now();
+    this.worldState.paused = true;
+    this.pauseStartedAt = now;
+    this.audioSystem.setPaused(true);
+    this.clearControlState();
+    this.overlay.showPause({
+      settings: this.settings,
+      supportsAudio: this.audioSystem.isSupported(),
+    });
+    this.updateSniffUi(now);
+  }
+
+  resumeGame() {
+    if (!this.worldState.paused) {
+      return;
+    }
+
+    const now = performance.now();
+    const pauseDuration = now - (this.pauseStartedAt ?? now);
+    this.worldState.paused = false;
+    this.pauseStartedAt = null;
+
+    if (this.roundStartTime !== null) {
+      this.roundStartTime += pauseDuration;
+    }
+
+    if (this.sniffCooldownEndsAt > 0) {
+      this.sniffCooldownEndsAt += pauseDuration;
+    }
+
+    this.hazardSystem.shiftTimers(pauseDuration);
+    this.audioSystem.setPaused(false);
+    this.overlay.hide();
+    this.updateSniffUi(now);
   }
 
   startRound() {
+    this.worldState.paused = false;
+    this.pauseStartedAt = null;
+    this.audioSystem.setPaused(false);
     this.audioSystem.unlock();
+    this.clearControlState();
     resetDog(this.dog, this.dogState);
     resetOwner(this.owner);
     this.juiceSystem.reset();
@@ -321,6 +465,7 @@ export class Game {
     triggerOwnerCelebrate(this.owner, randomItem(OWNER_CELEBRATION_LINES));
     this.worldState.state = GAME_STATES.complete;
     this.worldState.gameStarted = false;
+    this.worldState.paused = false;
     this.sniffCooldownEndsAt = 0;
     this.setRoundTime(totalTime);
     this.setObjective(OBJECTIVES.complete);
@@ -337,6 +482,8 @@ export class Game {
       totalTimeText: formatElapsedTime(totalTime),
       bestTimeText: formatElapsedTime(bestTime),
       isNewBest,
+      settings: this.settings,
+      supportsAudio: this.audioSystem.isSupported(),
     });
     this.updateSniffUi();
   }
@@ -357,7 +504,11 @@ export class Game {
 
   handleSniff() {
     const now = performance.now();
-    if (!this.worldState.gameStarted || this.worldState.state !== GAME_STATES.searching) {
+    if (
+      !this.worldState.gameStarted ||
+      this.worldState.paused ||
+      this.worldState.state !== GAME_STATES.searching
+    ) {
       return;
     }
 
@@ -426,74 +577,77 @@ export class Game {
     const delta = Math.min(this.clock.getDelta(), 0.05);
     const elapsed = this.clock.elapsedTime;
     const now = performance.now();
-    const speedMultiplier = this.worldState.gameStarted
-      ? this.hazardSystem.getSpeedMultiplier(this.dogState.position)
-      : 1;
-    this.previousDogPosition.copy(this.dog.position);
+    if (!this.worldState.paused) {
+      const speedMultiplier = this.worldState.gameStarted
+        ? this.hazardSystem.getSpeedMultiplier(this.dogState.position)
+        : 1;
+      this.previousDogPosition.copy(this.dog.position);
 
-    updateDog({
-      dog: this.dog,
-      dogState: this.dogState,
-      inputState: this.inputState,
-      pointerState: this.pointerState,
-      worldState: this.worldState,
-      delta,
-      speedMultiplier,
-      resolveMovement: (currentPosition, proposedPosition) =>
-        this.hazardSystem.resolveMovement({
-          currentPosition,
-          proposedPosition,
+      updateDog({
+        dog: this.dog,
+        dogState: this.dogState,
+        inputState: this.inputState,
+        pointerState: this.pointerState,
+        worldState: this.worldState,
+        delta,
+        speedMultiplier,
+        resolveMovement: (currentPosition, proposedPosition) =>
+          this.hazardSystem.resolveMovement({
+            currentPosition,
+            proposedPosition,
+            now,
+          }),
+      });
+
+      this.applyHazardFeedback(
+        this.hazardSystem.update({
+          dogPosition: this.dog.position,
+          previousDogPosition: this.previousDogPosition,
+          delta,
+          elapsed,
           now,
+          gameStarted: this.worldState.gameStarted,
         }),
-    });
+      );
+      updateOwner(this.owner, delta, elapsed);
+      this.juiceSystem.update({
+        delta,
+        dogState: this.dogState,
+        inputState: this.inputState,
+        gameStarted: this.worldState.gameStarted,
+      });
+      this.audioSystem.update({
+        delta,
+        dogSpeed: this.dogState.speed,
+        sprinting: this.inputState.sprint,
+      });
 
-    this.applyHazardFeedback(
-      this.hazardSystem.update({
-        dogPosition: this.dog.position,
-        previousDogPosition: this.previousDogPosition,
+      this.updateRoundTimer();
+
+      updateFollowCamera({
+        camera: this.camera,
+        target: this.dog.position,
+        pointerState: this.pointerState,
         delta,
         elapsed,
-        now,
+        movementIntensity: Math.min(1, this.dogState.speed / MOVEMENT_CONFIG.sprintSpeed),
+        sprinting: this.inputState.sprint,
+      });
+
+      this.sockManager.updateMarkers({
+        elapsed,
         gameStarted: this.worldState.gameStarted,
-      }),
-    );
-    updateOwner(this.owner, delta, elapsed);
-    this.juiceSystem.update({
-      delta,
-      dogState: this.dogState,
-      inputState: this.inputState,
-      gameStarted: this.worldState.gameStarted,
-    });
-    this.audioSystem.update({
-      delta,
-      dogSpeed: this.dogState.speed,
-      sprinting: this.inputState.sprint,
-    });
+      });
+      this.sockManager.updateSniffEffects({
+        delta,
+        elapsed,
+        gameStarted: this.worldState.gameStarted,
+      });
 
-    this.updateRoundTimer();
+      this.checkObjectives();
+    }
 
-    updateFollowCamera({
-      camera: this.camera,
-      target: this.dog.position,
-      pointerState: this.pointerState,
-      delta,
-      elapsed,
-      movementIntensity: Math.min(1, this.dogState.speed / MOVEMENT_CONFIG.sprintSpeed),
-      sprinting: this.inputState.sprint,
-    });
-
-    this.sockManager.updateMarkers({
-      elapsed,
-      gameStarted: this.worldState.gameStarted,
-    });
-    this.sockManager.updateSniffEffects({
-      delta,
-      elapsed,
-      gameStarted: this.worldState.gameStarted,
-    });
     this.updateSniffUi();
-
-    this.checkObjectives();
     this.renderer.render(this.scene, this.camera);
     this.animationFrameId = requestAnimationFrame(this.render);
   }

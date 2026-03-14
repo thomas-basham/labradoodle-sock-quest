@@ -92,6 +92,12 @@ canvas {
   gap: 16px;
 }
 
+.title-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   font-size: 0.72rem;
@@ -100,7 +106,7 @@ canvas {
   color: var(--accent-dark);
 }
 
-button.sound-toggle {
+button.hud-button {
   border: 1px solid rgba(141, 75, 28, 0.22);
   border-radius: 999px;
   margin-top: 0;
@@ -127,19 +133,19 @@ button.sound-toggle[aria-pressed="false"] {
   color: rgba(95, 56, 24, 0.86);
 }
 
-button.sound-toggle:disabled {
+button.hud-button:disabled {
   cursor: default;
   opacity: 0.6;
 }
 
-button.sound-toggle:hover:not(:disabled),
-button.sound-toggle:focus-visible:not(:disabled) {
+button.hud-button:hover:not(:disabled),
+button.hud-button:focus-visible:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: none;
   background: rgba(255, 241, 201, 0.98);
 }
 
-button.sound-toggle:focus-visible {
+button.hud-button:focus-visible {
   outline: 2px solid rgba(210, 110, 40, 0.45);
   outline-offset: 2px;
 }
@@ -459,9 +465,8 @@ h2 {
   line-height: 1.55;
 }
 
-.overlay-card #overlayBody {
-  margin-top: 14px;
-  max-width: 40ch;
+.overlay-card-menu {
+  width: min(720px, 100%);
 }
 
 .overlay-summary {
@@ -495,6 +500,133 @@ h2 {
   margin-top: 12px;
   font-weight: 800;
   color: var(--accent-dark);
+}
+
+.overlay-subtitle {
+  margin-top: 10px;
+  max-width: 40ch;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(95, 56, 24, 0.92);
+}
+
+.overlay-copy {
+  margin-top: 14px;
+  max-width: 44ch;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.secondary-button {
+  background: rgba(255, 247, 223, 0.88);
+  color: var(--accent-dark);
+  box-shadow: none;
+  border: 1px solid rgba(141, 75, 28, 0.18);
+}
+
+.secondary-button:hover,
+.secondary-button:focus-visible {
+  background: rgba(255, 241, 201, 0.98);
+  box-shadow: none;
+}
+
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.help-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(45, 29, 15, 0.12);
+  background: rgba(255, 249, 232, 0.78);
+}
+
+.help-card-wide {
+  margin-top: 14px;
+}
+
+.help-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+}
+
+.help-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+
+.help-list li + li {
+  margin-top: 6px;
+}
+
+.settings-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(45, 29, 15, 0.12);
+  background: rgba(255, 249, 232, 0.78);
+}
+
+.setting-row-disabled {
+  opacity: 0.7;
+}
+
+.setting-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.setting-label {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.setting-detail {
+  font-size: 0.92rem;
+  color: rgba(52, 36, 20, 0.82);
+}
+
+.toggle-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.setting-range {
+  width: min(220px, 32vw);
+  accent-color: var(--accent);
+}
+
+.setting-select {
+  min-width: 140px;
+  border: 1px solid rgba(45, 29, 15, 0.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 252, 243, 0.95);
+  color: var(--ink);
+  font: inherit;
 }
 
 button {
@@ -531,6 +663,10 @@ button:focus-visible {
     grid-column: auto;
   }
 
+  .controls-card {
+    display: none;
+  }
+
   .reticle {
     display: none;
   }
@@ -553,7 +689,11 @@ button:focus-visible {
     align-items: start;
   }
 
-  button.sound-toggle {
+  .title-actions {
+    flex-wrap: wrap;
+  }
+
+  button.hud-button {
     align-self: flex-start;
   }
 
@@ -563,6 +703,19 @@ button:focus-visible {
 
   .overlay-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .help-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-row {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-range,
+  .setting-select {
+    width: 100%;
   }
 }
 

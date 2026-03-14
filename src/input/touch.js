@@ -15,6 +15,8 @@ export function registerTouchControls({
   onSniff,
   pointerState,
   touchState,
+  canControl = () => true,
+  getLookSettings = () => ({ mouseSensitivity: 1, invertY: false }),
 }) {
   function setMoveVector(x, y) {
     touchState.moveVector.set(x, y);
@@ -28,6 +30,10 @@ export function registerTouchControls({
   }
 
   function handlePointerDown() {
+    if (!canControl()) {
+      return;
+    }
+
     pointerState.active = true;
   }
 
@@ -37,16 +43,26 @@ export function registerTouchControls({
 
   function handlePointerMove(event) {
     if (!pointerState.active) return;
+    if (!canControl()) return;
+    const lookSettings = getLookSettings();
 
-    pointerState.yaw -= event.movementX * CAMERA_CONFIG.mouseYawSpeed;
+    pointerState.yaw -= event.movementX * CAMERA_CONFIG.mouseYawSpeed * lookSettings.mouseSensitivity;
     pointerState.pitch = clamp(
-      pointerState.pitch - event.movementY * CAMERA_CONFIG.mousePitchSpeed,
+      pointerState.pitch +
+        event.movementY *
+          CAMERA_CONFIG.mousePitchSpeed *
+          lookSettings.mouseSensitivity *
+          (lookSettings.invertY ? 1 : -1),
       CAMERA_CONFIG.minPitch,
       CAMERA_CONFIG.maxPitch,
     );
   }
 
   function handleMoveTouchStart(event) {
+    if (!canControl()) {
+      return;
+    }
+
     const touch = event.changedTouches[0];
     touchState.moveId = touch.identifier;
 
@@ -63,6 +79,10 @@ export function registerTouchControls({
   }
 
   function handleMoveTouchMove(event) {
+    if (!canControl()) {
+      return;
+    }
+
     for (const touch of event.changedTouches) {
       if (touch.identifier !== touchState.moveId) continue;
 
@@ -88,6 +108,10 @@ export function registerTouchControls({
   }
 
   function handleSprintStart() {
+    if (!canControl()) {
+      return;
+    }
+
     inputState.sprint = true;
   }
 
@@ -97,10 +121,18 @@ export function registerTouchControls({
 
   function handleSniff(event) {
     event.preventDefault();
+    if (!canControl()) {
+      return;
+    }
+
     onSniff();
   }
 
   function handleLookTouchStart(event) {
+    if (!canControl()) {
+      return;
+    }
+
     for (const touch of event.changedTouches) {
       if (touch.identifier === touchState.moveId) continue;
       if (touchState.lookId !== null) continue;
@@ -119,6 +151,11 @@ export function registerTouchControls({
   }
 
   function handleLookTouchMove(event) {
+    if (!canControl()) {
+      return;
+    }
+
+    const lookSettings = getLookSettings();
     for (const touch of event.changedTouches) {
       if (touch.identifier !== touchState.lookId) continue;
 
@@ -127,9 +164,13 @@ export function registerTouchControls({
 
       pointerState.x = touch.clientX;
       pointerState.y = touch.clientY;
-      pointerState.yaw -= dx * CAMERA_CONFIG.touchYawSpeed;
+      pointerState.yaw -= dx * CAMERA_CONFIG.touchYawSpeed * lookSettings.mouseSensitivity;
       pointerState.pitch = clamp(
-        pointerState.pitch - dy * CAMERA_CONFIG.touchPitchSpeed,
+        pointerState.pitch +
+          dy *
+            CAMERA_CONFIG.touchPitchSpeed *
+            lookSettings.mouseSensitivity *
+            (lookSettings.invertY ? 1 : -1),
         CAMERA_CONFIG.minPitch,
         CAMERA_CONFIG.maxPitch,
       );

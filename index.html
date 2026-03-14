@@ -14,9 +14,12 @@
             <p class="eyebrow">Sock-Obsessed Labradoodle Operations</p>
             <h1>Ray's Sock Quest</h1>
           </div>
-          <button class="sound-toggle" id="soundToggleButton" type="button" aria-pressed="true">
-            Sound On
-          </button>
+          <div class="title-actions">
+            <button class="hud-button" id="menuButton" type="button">Menu</button>
+            <button class="hud-button sound-toggle" id="soundToggleButton" type="button" aria-pressed="true">
+              Sound On
+            </button>
+          </div>
         </div>
       </div>
       <div class="status-card">
@@ -73,34 +76,13 @@
         <p>Sprint: <span>Shift</span></p>
         <p>Sniff: <span>Space / Sniff button</span></p>
         <p>Look: <span>Mouse / Touch drag</span></p>
+        <p>Pause: <span>Escape / Menu</span></p>
       </div>
     </div>
     <div class="reticle"></div>
     <div class="sprinkler-overlay" id="sprinklerOverlay" aria-hidden="true"></div>
     <div class="overlay" id="overlay">
-      <div class="overlay-card">
-        <p class="eyebrow">Chief Laundry Investigator</p>
-        <h2 id="overlayTitle">Ray and the Missing Sock</h2>
-        <p id="overlayBody">
-          Ray is a sock-obsessed labradoodle with a nose for laundry-related chaos.
-          Track down the missing socks, tap sniff when you need a lead, grab each one,
-          and parade it back to Becca like the neighborhood legend she is.
-        </p>
-        <div class="overlay-summary hidden" id="overlaySummary">
-          <div class="overlay-summary-grid">
-            <div class="overlay-stat">
-              <p class="meta-label">Total time</p>
-              <p class="overlay-stat-value" id="overlayTime">0:00.00</p>
-            </div>
-            <div class="overlay-stat">
-              <p class="meta-label">Best time</p>
-              <p class="overlay-stat-value" id="overlayBestTime">--:--.--</p>
-            </div>
-          </div>
-          <p class="overlay-best-notice" id="overlayBestNotice">New best time!</p>
-        </div>
-        <button id="overlayButton" type="button">Unleash Ray</button>
-      </div>
+      <div class="overlay-card overlay-card-menu" id="overlayPanel"></div>
     </div>
     <div id="app"></div>
     <div class="mobile-controls">

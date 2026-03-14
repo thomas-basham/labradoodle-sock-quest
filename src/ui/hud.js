@@ -20,6 +20,7 @@ export function createHud() {
   const hazardText = document.getElementById("hazardText");
   const sprinklerOverlay = document.getElementById("sprinklerOverlay");
   const soundToggleButton = document.getElementById("soundToggleButton");
+  const menuButton = document.getElementById("menuButton");
   let lastReturnedCount = 0;
 
   return {
@@ -86,6 +87,17 @@ export function createHud() {
       soundToggleButton.addEventListener("click", handler);
       return () => {
         soundToggleButton.removeEventListener("click", handler);
+      };
+    },
+
+    onMenu(handler) {
+      if (!menuButton) {
+        return () => {};
+      }
+
+      menuButton.addEventListener("click", handler);
+      return () => {
+        menuButton.removeEventListener("click", handler);
       };
     },
   };

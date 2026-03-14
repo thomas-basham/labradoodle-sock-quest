@@ -16,27 +16,6 @@ const MUSIC_PATTERN = [
   { bass: null, lead: 493.88 },
 ];
 
-function loadStoredEnabledState() {
-  try {
-    const rawValue = window.localStorage.getItem(AUDIO_CONFIG.storageKey);
-    if (rawValue === null) {
-      return AUDIO_CONFIG.enabledByDefault;
-    }
-
-    return rawValue === "true";
-  } catch {
-    return AUDIO_CONFIG.enabledByDefault;
-  }
-}
-
-function storeEnabledState(enabled) {
-  try {
-    window.localStorage.setItem(AUDIO_CONFIG.storageKey, String(enabled));
-  } catch {
-    // Ignore storage failures and keep the in-memory setting.
-  }
-}
-
 function hasWebAudioSupport() {
   return typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext);
 }
@@ -50,9 +29,10 @@ function clampVolume(value) {
 }
 
 export class AudioSystem {
-  constructor() {
+  constructor({ enabled = AUDIO_CONFIG.enabledByDefault } = {}) {
     this.supported = hasWebAudioSupport();
-    this.enabled = loadStoredEnabledState();
+    this.enabled = enabled;
+    this.paused = false;
     this.context = null;
     this.masterGain = null;
     this.musicGain = null;
@@ -79,13 +59,7 @@ export class AudioSystem {
 
   setEnabled(enabled) {
     this.enabled = Boolean(enabled);
-    storeEnabledState(this.enabled);
-
-    if (this.masterGain && this.context) {
-      const now = this.context.currentTime;
-      this.masterGain.gain.cancelScheduledValues(now);
-      this.masterGain.gain.setTargetAtTime(this.enabled ? 1 : 0, now, 0.04);
-    }
+    this.syncMasterGain();
 
     if (!this.enabled) {
       this.footstepTimer = 0;
@@ -95,6 +69,11 @@ export class AudioSystem {
   toggleEnabled() {
     this.setEnabled(!this.enabled);
     return this.enabled;
+  }
+
+  setPaused(paused) {
+    this.paused = Boolean(paused);
+    this.syncMasterGain();
   }
 
   unlock() {
@@ -178,7 +157,7 @@ export class AudioSystem {
       this.musicGain = this.context.createGain();
       this.sfxGain = this.context.createGain();
 
-      this.masterGain.gain.value = this.enabled ? 1 : 0;
+      this.masterGain.gain.value = this.enabled && !this.paused ? 1 : 0;
       this.musicGain.gain.value = AUDIO_CONFIG.musicVolume;
       this.sfxGain.gain.value = AUDIO_CONFIG.sfxVolume;
 
@@ -194,6 +173,17 @@ export class AudioSystem {
       this.context = null;
       this.supported = false;
     }
+  }
+
+  syncMasterGain() {
+    if (!this.masterGain || !this.context) {
+      return;
+    }
+
+    const now = this.context.currentTime;
+    const targetGain = this.enabled && !this.paused ? 1 : 0;
+    this.masterGain.gain.cancelScheduledValues(now);
+    this.masterGain.gain.setTargetAtTime(targetGain, now, 0.04);
   }
 
   createNoiseBuffer() {
