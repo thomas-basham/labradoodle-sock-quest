@@ -85,12 +85,63 @@ canvas {
   padding: 18px 22px 20px;
 }
 
+.title-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   font-size: 0.72rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--accent-dark);
+}
+
+button.sound-toggle {
+  border: 1px solid rgba(141, 75, 28, 0.22);
+  border-radius: 999px;
+  margin-top: 0;
+  padding: 10px 14px;
+  background: rgba(255, 248, 219, 0.9);
+  color: var(--accent-dark);
+  box-shadow: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+}
+
+button.sound-toggle[aria-pressed="false"] {
+  background: rgba(141, 75, 28, 0.08);
+  color: rgba(95, 56, 24, 0.86);
+}
+
+button.sound-toggle:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+button.sound-toggle:hover:not(:disabled),
+button.sound-toggle:focus-visible:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: none;
+  background: rgba(255, 241, 201, 0.98);
+}
+
+button.sound-toggle:focus-visible {
+  outline: 2px solid rgba(210, 110, 40, 0.45);
+  outline-offset: 2px;
 }
 
 h1,
@@ -145,6 +196,10 @@ h2 {
   font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.03em;
+}
+
+.ui-pop {
+  animation: ui-pop 260ms ease-out;
 }
 
 .status-row {
@@ -318,6 +373,20 @@ h2 {
   gap: 12px;
   justify-items: end;
   pointer-events: auto;
+}
+
+@keyframes ui-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .joystick {

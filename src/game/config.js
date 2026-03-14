@@ -116,6 +116,10 @@ export const CAMERA_CONFIG = {
   mousePitchSpeed: 0.0022,
   touchYawSpeed: 0.004,
   touchPitchSpeed: 0.003,
+  bobDamping: 7,
+  bobHeight: 0.08,
+  bobSway: 0.06,
+  bobSpeed: 8.5,
 };
 
 export const OWNER_CONFIG = {
@@ -177,6 +181,22 @@ export const ROUND_CONFIG = {
   bestTimeStorageKey: "ray-sock-quest-best-time-ms",
 };
 
+export const AUDIO_CONFIG = {
+  storageKey: "ray-sock-quest-sound-enabled",
+  enabledByDefault: true,
+  musicVolume: 0.18,
+  sfxVolume: 0.42,
+};
+
+export const JUICE_CONFIG = {
+  pickupBurstCount: 9,
+  pickupBurstDuration: 0.58,
+  sprintDustCount: 18,
+  sprintDustDuration: 0.45,
+  sprintDustSpawnInterval: 0.06,
+  sprintThreshold: 6.4,
+};
+
 export const HAZARD_CONFIG = {
   defaultStatus: {
     badge: "Clear",
@@ -228,7 +248,7 @@ export const SNIFF_CONFIG = {
   trailSideOffset: 0.58,
   defaultHint: "Tap Sniff to sample the backyard sock breeze.",
   introHint: "Press Space or tap Sniff once Ray is loose.",
-  returningHint: "Sock secured. Bring it back to Ray's human.",
+  returningHint: "Sock secured. Bring it back to Becca by the porch.",
   completeHint: "Every sock has been accounted for.",
 };
 

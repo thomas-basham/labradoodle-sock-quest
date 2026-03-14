@@ -1,5 +1,6 @@
 import * as THREE from "three";
 
+import { AudioSystem } from "../audio/audioSystem";
 import { createFollowCamera, resizeFollowCamera, updateFollowCamera } from "../camera/followCamera";
 import { createDog, nudgeDog, resetDog, triggerDogSniff, updateDog } from "../entities/dog";
 import {
@@ -10,6 +11,7 @@ import {
   updateOwner,
 } from "../entities/owner";
 import { SockManager } from "../entities/sockManager";
+import { JuiceSystem } from "../effects/juiceSystem";
 import { registerKeyboardControls } from "../input/keyboard";
 import { registerTouchControls } from "../input/touch";
 import { createHud } from "../ui/hud";
@@ -25,6 +27,7 @@ import {
   FLAVOR_MESSAGES,
   GAME_STATES,
   HAZARD_CONFIG,
+  MOVEMENT_CONFIG,
   OBJECTIVES,
   OWNER_CELEBRATION_LINES,
   OWNER_REACTION_LINES,
@@ -68,6 +71,7 @@ export class Game {
     this.renderer = createRenderer(mount);
     this.clock = new THREE.Clock();
     this.tempVector = new THREE.Vector3();
+    this.effectVector = new THREE.Vector3();
     this.previousDogPosition = new THREE.Vector3();
 
     this.worldState = createWorldState();
@@ -80,6 +84,11 @@ export class Game {
     this.owner = createOwner(this.scene);
     this.dog = createDog(this.scene);
     this.dogState = createDogState(this.dog);
+    this.audioSystem = new AudioSystem();
+    this.juiceSystem = new JuiceSystem({
+      scene: this.scene,
+      dog: this.dog,
+    });
     this.sockManager = new SockManager({
       scene: this.scene,
       dog: this.dog,
@@ -108,6 +117,7 @@ export class Game {
     this.roundStartTime = null;
 
     this.handleOverlayAction = this.handleOverlayAction.bind(this);
+    this.handleSoundToggle = this.handleSoundToggle.bind(this);
     this.handleSniff = this.handleSniff.bind(this);
     this.tryStartGame = this.tryStartGame.bind(this);
     this.handleResize = this.handleResize.bind(this);
@@ -120,6 +130,7 @@ export class Game {
         onStart: this.tryStartGame,
         onSniff: this.handleSniff,
       }),
+      this.hud.onSoundToggle(this.handleSoundToggle),
       registerTouchControls({
         canvas: this.renderer.domElement,
         movePad: document.getElementById("movePad"),
@@ -132,6 +143,7 @@ export class Game {
         touchState: this.touchState,
       }),
     ];
+    this.hud.setSoundEnabled(this.audioSystem.getEnabled(), this.audioSystem.isSupported());
 
     window.addEventListener("resize", this.handleResize);
     this.animationFrameId = null;
@@ -149,12 +161,23 @@ export class Game {
 
     window.removeEventListener("resize", this.handleResize);
     this.cleanups.forEach((cleanup) => cleanup());
+    this.audioSystem.destroy();
+    this.juiceSystem.destroy();
     this.renderer.dispose();
   }
 
   handleResize() {
     resizeFollowCamera(this.camera);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  handleSoundToggle() {
+    const enabled = this.audioSystem.toggleEnabled();
+    if (enabled) {
+      this.audioSystem.unlock();
+    }
+
+    this.hud.setSoundEnabled(this.audioSystem.getEnabled(), this.audioSystem.isSupported());
   }
 
   setObjective(text) {
@@ -261,8 +284,10 @@ export class Game {
   }
 
   startRound() {
+    this.audioSystem.unlock();
     resetDog(this.dog, this.dogState);
     resetOwner(this.owner);
+    this.juiceSystem.reset();
     this.sockManager.resetRound();
     this.hazardSystem.resetRound({
       reservedPositions: [
@@ -292,6 +317,7 @@ export class Game {
     const previousBest = this.worldState.bestTimeMs;
     const isNewBest = previousBest === null || totalTime < previousBest;
 
+    this.audioSystem.playRoundComplete();
     triggerOwnerCelebrate(this.owner, randomItem(OWNER_CELEBRATION_LINES));
     this.worldState.state = GAME_STATES.complete;
     this.worldState.gameStarted = false;
@@ -344,6 +370,7 @@ export class Game {
       return;
     }
 
+    this.audioSystem.playSniff();
     triggerDogSniff(this.dogState);
     this.sniffCooldownEndsAt = now + SNIFF_CONFIG.cooldownMs;
     this.setSniffHint(getSniffHint(this.dog.position.distanceTo(target)));
@@ -352,7 +379,10 @@ export class Game {
 
   checkObjectives() {
     if (this.worldState.state === GAME_STATES.searching) {
-      if (this.sockManager.tryPickup(this.dog.position)) {
+      const pickupTarget = this.sockManager.getActiveSockWorldPosition(this.effectVector);
+      if (pickupTarget && this.sockManager.tryPickup(this.dog.position)) {
+        this.audioSystem.playPickup();
+        this.juiceSystem.spawnPickupBurst(pickupTarget);
         this.worldState.state = GAME_STATES.returning;
         this.pickupSock();
       }
@@ -365,6 +395,7 @@ export class Game {
 
     const result = this.sockManager.tryReturn(this.dog.position, this.tempVector);
     if (result.returned) {
+      this.audioSystem.playReturn();
       this.dogState.hasSock = false;
       this.setSocksReturned(result.returnedCount);
 
@@ -427,6 +458,17 @@ export class Game {
       }),
     );
     updateOwner(this.owner, delta, elapsed);
+    this.juiceSystem.update({
+      delta,
+      dogState: this.dogState,
+      inputState: this.inputState,
+      gameStarted: this.worldState.gameStarted,
+    });
+    this.audioSystem.update({
+      delta,
+      dogSpeed: this.dogState.speed,
+      sprinting: this.inputState.sprint,
+    });
 
     this.updateRoundTimer();
 
@@ -435,6 +477,9 @@ export class Game {
       target: this.dog.position,
       pointerState: this.pointerState,
       delta,
+      elapsed,
+      movementIntensity: Math.min(1, this.dogState.speed / MOVEMENT_CONFIG.sprintSpeed),
+      sprinting: this.inputState.sprint,
     });
 
     this.sockManager.updateMarkers({

@@ -1,3 +1,10 @@
+function pulseElement(element) {
+  element.classList.remove("ui-pop");
+  // Force a reflow so repeated score changes still retrigger the animation.
+  void element.offsetWidth;
+  element.classList.add("ui-pop");
+}
+
 export function createHud() {
   const dogName = document.getElementById("dogName");
   const objectiveText = document.getElementById("objectiveText");
@@ -12,6 +19,8 @@ export function createHud() {
   const hazardTitle = document.getElementById("hazardTitle");
   const hazardText = document.getElementById("hazardText");
   const sprinklerOverlay = document.getElementById("sprinklerOverlay");
+  const soundToggleButton = document.getElementById("soundToggleButton");
+  let lastReturnedCount = 0;
 
   return {
     setName(text) {
@@ -23,6 +32,11 @@ export function createHud() {
     },
 
     setProgress(returnedCount, totalSocks) {
+      if (returnedCount > lastReturnedCount) {
+        pulseElement(sockProgress);
+      }
+
+      lastReturnedCount = returnedCount;
       sockProgress.textContent = `${returnedCount} / ${totalSocks}`;
     },
 
@@ -56,6 +70,23 @@ export function createHud() {
 
     setSprinklerOverlay(intensity) {
       sprinklerOverlay.style.opacity = intensity.toFixed(3);
+    },
+
+    setSoundEnabled(enabled, supported = true) {
+      soundToggleButton.disabled = !supported;
+      soundToggleButton.setAttribute("aria-pressed", String(enabled));
+      soundToggleButton.textContent = supported ? (enabled ? "Sound On" : "Sound Off") : "Sound N/A";
+    },
+
+    onSoundToggle(handler) {
+      if (!soundToggleButton) {
+        return () => {};
+      }
+
+      soundToggleButton.addEventListener("click", handler);
+      return () => {
+        soundToggleButton.removeEventListener("click", handler);
+      };
     },
   };
 }
